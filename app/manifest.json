@@ -1,0 +1,19 @@
+{
+  "name": "VB Connect — Motorrad Cockpit & Telemetrie",
+  "short_name": "VB Connect",
+  "description": "iOS Cloud App für das VB Display Motorrad-Cockpit mit Google Maps Satelliten-Tracking, Live-Telemetrie, Fahrtaufzeichnung, Abo-System, Garage, Support & Admin-Control.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#080b11",
+  "theme_color": "#080b11",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "./apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

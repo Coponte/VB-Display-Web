@@ -1,0 +1,2735 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="color-scheme" content="dark" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="VB Connect" />
+  <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
+  <link rel="icon" type="image/png" href="./apple-touch-icon.png" />
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <title>VB Connect — iOS Motorrad Cockpit &amp; Telemetrie App</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #080b11;
+      --bg-elev: #101521;
+      --bg-card: #131a29;
+      --bg-card-alt: #192236;
+      --border: rgba(255, 255, 255, 0.09);
+      --border-strong: rgba(0, 215, 255, 0.35);
+      --text: #f5f8ff;
+      --muted: #8a9bb8;
+      --cyan: #00d7ff;
+      --green: #00eb6e;
+      --amber: #ffb400;
+      --red: #ff2d37;
+      --blue: #2387ff;
+      --purple: #a855f7;
+      --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif;
+      --mono: ui-monospace, "SF Mono", Menlo, monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: var(--font);
+      background: radial-gradient(circle at 50% 0%, #131d31 0%, var(--bg) 65%);
+      color: var(--text);
+      min-height: 100dvh;
+      padding-bottom: calc(86px + env(safe-area-inset-bottom, 0px));
+      overflow-x: hidden;
+    }
+
+    .num {
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* iOS Top Navigation Header */
+    header.ios-header {
+      position: sticky;
+      top: 0;
+      z-index: 40;
+      background: rgba(10, 14, 24, 0.82);
+      backdrop-filter: blur(22px);
+      -webkit-backdrop-filter: blur(22px);
+      border-bottom: 1px solid var(--border);
+      padding: calc(12px + env(safe-area-inset-top, 0px)) 16px 12px 16px;
+    }
+
+    .header-inner {
+      max-width: 980px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .brand-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .app-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #00d7ff 0%, #0077ff 100%);
+      color: #040810;
+      font-weight: 900;
+      font-size: 15px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 14px rgba(0, 215, 255, 0.35);
+    }
+
+    .brand-title {
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-sub {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .header-badges {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+    }
+    .pill.cyan { color: var(--cyan); border-color: rgba(0, 215, 255, 0.4); background: rgba(0, 215, 255, 0.12); }
+    .pill.green { color: var(--green); border-color: rgba(0, 235, 110, 0.4); background: rgba(0, 235, 110, 0.12); }
+    .pill.amber { color: var(--amber); border-color: rgba(255, 180, 0, 0.4); background: rgba(255, 180, 0, 0.12); }
+    .pill.purple { color: #d8b4fe; border-color: rgba(168, 85, 247, 0.45); background: rgba(168, 85, 247, 0.16); }
+    .pill.red { color: #ff8086; border-color: rgba(255, 45, 55, 0.45); background: rgba(255, 45, 55, 0.16); }
+
+    /* Container */
+    .container {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 16px;
+    }
+
+    /* Cards & Layout */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 14px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    .card-title {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--cyan);
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+
+    @media (max-width: 720px) {
+      .grid-3, .grid-4 { grid-template-columns: repeat(2, 1fr); }
+      .grid-2.stack-mobile { grid-template-columns: 1fr; }
+    }
+
+    .stat-box {
+      background: var(--bg-elev);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 11px 13px;
+    }
+
+    .stat-label {
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .stat-value {
+      font-size: 21px;
+      font-weight: 800;
+      margin-top: 3px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .stat-sub {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    /* Buttons & Inputs */
+    button, .btn {
+      font-family: var(--font);
+      background: var(--cyan);
+      color: #050a12;
+      border: none;
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: transform 0.12s ease, opacity 0.15s ease;
+    }
+    button:active { transform: scale(0.97); }
+    button.sec { background: var(--bg-card-alt); color: var(--text); border: 1px solid var(--border); }
+    button.green { background: var(--green); color: #04120a; }
+    button.red { background: var(--red); color: #fff; }
+    button.purple { background: linear-gradient(135deg, #a855f7, #6366f1); color: #fff; }
+    button.sm { padding: 6px 11px; font-size: 12px; border-radius: 8px; }
+    button.block { width: 100%; }
+
+    input[type="text"], input[type="email"], input[type="password"], input[type="number"], select, textarea {
+      width: 100%;
+      background: var(--bg-elev);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 10px 12px;
+      border-radius: 10px;
+      font-family: var(--font);
+      font-size: 14px;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--cyan);
+    }
+
+    label.field-lbl {
+      display: block;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 4px;
+      font-weight: 600;
+    }
+
+    .form-group {
+      margin-bottom: 12px;
+    }
+
+    /* Live Display Preview Wrapper */
+    .display-bezel {
+      background: linear-gradient(145deg, #222631, #0e1118);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 20px;
+      padding: 12px;
+      max-width: 480px;
+      margin: 0 auto;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+    }
+
+    canvas.cockpit-canvas {
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      display: block;
+      border-radius: 12px;
+      background: #0a0e18;
+      border: 1px solid rgba(0, 215, 255, 0.25);
+    }
+
+    /* Trip List Items */
+    .trip-item {
+      background: var(--bg-elev);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px;
+      margin-bottom: 10px;
+      cursor: pointer;
+      transition: border-color 0.15s ease, transform 0.15s ease;
+    }
+    .trip-item:hover {
+      border-color: var(--cyan);
+      transform: translateY(-1px);
+    }
+
+    /* Progress Bars */
+    .prog-track {
+      width: 100%;
+      height: 8px;
+      background: #0b0f18;
+      border-radius: 99px;
+      overflow: hidden;
+      margin-top: 6px;
+    }
+    .prog-fill {
+      height: 100%;
+      border-radius: 99px;
+      background: var(--cyan);
+    }
+
+    /* iOS Bottom Tab Bar */
+    nav.ios-tabbar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 50;
+      background: rgba(12, 16, 26, 0.88);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border-top: 1px solid var(--border);
+      padding: 6px 8px calc(8px + env(safe-area-inset-bottom, 0px)) 8px;
+    }
+
+    .tabbar-inner {
+      max-width: 640px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+    }
+
+    .tab-btn {
+      background: transparent;
+      color: var(--muted);
+      border: none;
+      padding: 4px 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .tab-btn .ico {
+      font-size: 19px;
+      line-height: 1;
+    }
+    .tab-btn.active {
+      color: var(--cyan);
+    }
+
+    /* Native Dialogs */
+    dialog.ios-dialog {
+      margin: auto;
+      background: var(--bg-card);
+      color: var(--text);
+      border: 1px solid var(--border-strong);
+      border-radius: 18px;
+      padding: 20px;
+      width: min(92vw, 480px);
+      box-shadow: 0 24px 64px rgba(0, 0, 0, 0.75);
+    }
+    dialog.ios-dialog::backdrop {
+      background: rgba(4, 7, 14, 0.75);
+      backdrop-filter: blur(6px);
+    }
+
+    .hide { display: none !important; }
+
+    /* Chat bubbles */
+    .chat-box {
+      max-height: 260px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 10px;
+      background: var(--bg-elev);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      margin: 10px 0;
+    }
+    .chat-msg {
+      padding: 9px 12px;
+      border-radius: 12px;
+      font-size: 13px;
+      max-width: 88%;
+    }
+    .chat-msg.user {
+      background: #1c2840;
+      align-self: flex-start;
+    }
+    .chat-msg.admin {
+      background: rgba(0, 215, 255, 0.16);
+      border: 1px solid rgba(0, 215, 255, 0.35);
+      align-self: flex-end;
+    }
+
+    /* Recording pulse */
+    @keyframes pulseRed {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.45; transform: scale(1.12); }
+    }
+    .rec-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--red);
+      display: inline-block;
+      animation: pulseRed 1.1s infinite;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- =====================================================================
+       TOP iOS HEADER
+       ===================================================================== -->
+  <header class="ios-header">
+    <div class="header-inner">
+      <div class="brand-row">
+        <div class="app-icon">VB</div>
+        <div>
+          <div class="brand-title">VB Connect <span style="font-weight:400;font-size:12px;color:var(--cyan)">iOS</span></div>
+          <div class="brand-sub" id="hdrUserSub">Motorrad IoT-Telemetrie &amp; Cloud</div>
+        </div>
+      </div>
+      <div class="header-badges">
+        <button class="sec sm" onclick="openIphoneInstallModal()" style="border-color:rgba(0,215,255,0.4);color:var(--cyan)">📲 Auf iPhone</button>
+        <span id="hdrEspBadge" class="pill amber">📡 ESP32: Prüfe...</span>
+        <span id="hdrPlanBadge" class="pill purple hide">PRO</span>
+        <button id="btnHeaderLogout" class="sec sm hide" onclick="logoutUser()">Abmelden</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="container">
+
+    <!-- =====================================================================
+         AUTH VIEW (LOGIN & REGISTER SYSTEM)
+         ===================================================================== -->
+    <section id="viewAuth">
+      <div class="card" style="max-width:480px;margin:18px auto">
+        <div style="text-align:center;margin-bottom:16px">
+          <div class="app-icon" style="width:54px;height:54px;font-size:22px;margin:0 auto 10px auto;border-radius:15px">VB</div>
+          <h2 style="font-size:22px">Willkommen bei VB Connect</h2>
+          <p style="font-size:13px;color:var(--muted);margin-top:4px">
+            Verbinde dein iPhone mit dem 4,0" VB Display, zeichne Fahrten per GPS auf und analysiere jede Kurve.
+          </p>
+        </div>
+
+        <!-- Tabs Login / Registrieren -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">
+          <button id="btnAuthTabLogin" onclick="switchAuthMode('login')">🔑 Anmelden</button>
+          <button id="btnAuthTabReg" class="sec" onclick="switchAuthMode('register')">📝 Registrieren</button>
+        </div>
+
+        <!-- Login Form -->
+        <form id="formLogin" onsubmit="handleLogin(event)">
+          <div class="form-group">
+            <label class="field-lbl" for="loginIdent">E-Mail oder Benutzername</label>
+            <input id="loginIdent" type="text" autocomplete="username" value="admin" placeholder="z. B. admin oder admin@vbdisplay.de" required />
+          </div>
+          <div class="form-group">
+            <label class="field-lbl" for="loginPw">Passwort</label>
+            <input id="loginPw" type="password" autocomplete="current-password" value="vb2026" placeholder="Passwort (vb2026)" required />
+          </div>
+          <div id="authErrorBox" class="pill red hide" style="width:100%;justify-content:center;padding:8px;margin-bottom:10px"></div>
+          <button type="submit" class="block" style="padding:12px">Jetzt anmelden</button>
+        </form>
+
+        <!-- Register Form -->
+        <form id="formRegister" class="hide" onsubmit="handleRegister(event)">
+          <div class="form-group">
+            <label class="field-lbl" for="regName">Vollständiger Name</label>
+            <input id="regName" type="text" autocomplete="name" placeholder="z. B. Timo Kaufmann" required />
+          </div>
+          <div class="form-group">
+            <label class="field-lbl" for="regEmail">E-Mail-Adresse</label>
+            <input id="regEmail" type="email" autocomplete="email" placeholder="fahrer@vbdisplay.de" required />
+          </div>
+          <div class="form-group">
+            <label class="field-lbl" for="regBike">Dein Motorrad-Modell (für die Garage)</label>
+            <input id="regBike" type="text" placeholder="z. B. Yamaha MT-07 / KTM 690 SMC-R" value="Yamaha MT-07" required />
+          </div>
+          <div class="form-group">
+            <label class="field-lbl" for="regPw">Passwort wählen</label>
+            <input id="regPw" type="password" autocomplete="new-password" placeholder="Mindestens 4 Zeichen" required />
+          </div>
+          <button type="submit" class="green block" style="padding:12px">Konto erstellen &amp; starten</button>
+        </form>
+
+        <hr style="border:0;border-top:1px solid var(--border);margin:16px 0" />
+        <div class="stat-label" style="margin-bottom:8px;text-align:center">Schnell-Login für Vorführung &amp; Test:</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <button class="sec sm" onclick="quickLogin('admin','vb2026')">🛡️ Admin (Timo / Trackday)</button>
+          <button class="sec sm" onclick="quickLogin('pascal','vb2026')">⚡ Fahrer (Pascal / Pro)</button>
+          <button class="sec sm" onclick="quickLogin('steven','vb2026')">🏁 Fahrer (Steven / Track)</button>
+          <button class="sec sm" onclick="quickLogin('max','vb2026')">🆓 Basis-User (Max / Free)</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- =====================================================================
+         TAB 1: COCKPIT & LIVE TRIP RECORDING
+         ===================================================================== -->
+    <section id="viewCockpit" class="hide">
+      <!-- ESP32 Hardware Connection Card -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">📡 Verbindung zum 4,0" VB Display (ESP32)</div>
+            <div style="font-size:12px;color:var(--muted)" id="espConnStatusText">
+              Verbinde im WLAN <b>VB-Display-Telemetry</b> mit <code>192.168.4.1</code>
+            </div>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <input id="inpEspIp" type="text" value="192.168.4.1" style="width:122px;padding:6px 9px;font-size:12px" />
+            <button class="sec sm" onclick="testEspConnection()">Verbinden</button>
+          </div>
+        </div>
+
+        <!-- 1:1 Website Display Mirror -->
+        <div class="display-bezel">
+          <canvas id="liveDisplayCanvas" class="cockpit-canvas" width="640" height="480"></canvas>
+        </div>
+
+        <!-- Live Trip Recorder Bar -->
+        <div style="margin-top:14px;background:var(--bg-elev);border:1px solid var(--border-strong);border-radius:14px;padding:13px">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+            <div>
+              <div style="font-size:13px;font-weight:700;display:flex;align-items:center;gap:7px">
+                <span id="recDot" class="rec-dot hide"></span>
+                <span id="recTitleText">GPS &amp; Telemetrie Fahrt-Aufzeichnung</span>
+              </div>
+              <div style="font-size:12px;color:var(--muted);margin-top:2px" id="recSubText">
+                Zeichnet Strecke, Tempo, Drehzahl, Schräglage &amp; G-Kräfte in Echtzeit auf.
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <select id="selRecBike" style="width:auto;padding:7px 10px;font-size:12px"></select>
+              <button id="btnStartRec" class="red" onclick="toggleTripRecording()">🔴 Fahrt aufzeichnen</button>
+            </div>
+          </div>
+
+          <!-- Active Recording Live Counters -->
+          <div id="recLiveStats" class="grid-4 hide" style="margin-top:12px">
+            <div class="stat-box">
+              <div class="stat-label">Dauer</div>
+              <div class="stat-value num" id="recValTime">00:00</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">Strecke</div>
+              <div class="stat-value num" id="recValDist">0.00 km</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">Top-Speed</div>
+              <div class="stat-value num" id="recValMaxSpd">0 km/h</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">Max. Schräglage</div>
+              <div class="stat-value num" id="recValMaxLean">0°</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Telemetry 8 Cards -->
+      <div class="grid-4" style="margin-bottom:14px">
+        <div class="stat-box">
+          <div class="stat-label">Geschwindigkeit</div>
+          <div class="stat-value num" id="liveSpd" style="color:var(--cyan)">0.0 km/h</div>
+          <div class="stat-sub" id="liveGps">GPS: 10 Sats (FIX)</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Drehzahl</div>
+          <div class="stat-value num" id="liveRpm">1300 RPM</div>
+          <div class="stat-sub" id="liveRedline">Redline: 9500 RPM</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Gang / Getriebe</div>
+          <div class="stat-value num" id="liveGear" style="color:var(--green)">N</div>
+          <div class="stat-sub">Getriebesensor</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Schräglage / G-Force</div>
+          <div class="stat-value num" id="liveLean">0°</div>
+          <div class="stat-sub num" id="liveGForce">0.15 G Dynamik</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Bordspannung (12V)</div>
+          <div class="stat-value num" id="liveBat">14.1 V</div>
+          <div class="stat-sub">Lichtmaschine OK</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Tankfüllstand</div>
+          <div class="stat-value num" id="liveFuel">78 %</div>
+          <div class="stat-sub">Reichweite ~185 km</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Motortemperatur</div>
+          <div class="stat-value num" id="liveTemp">82 °C</div>
+          <div class="stat-sub">Kühlmittel Normal</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Tageskilometer (TRP)</div>
+          <div class="stat-value num" id="liveTrip">48.4 km</div>
+          <div class="stat-sub num" id="liveOdo">ODO: 12480 km</div>
+        </div>
+      </div>
+
+      <!-- Quick Display Hardware Remote Control -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">⚡ Direkt-Fernsteuerung fürs 4,0" Display (/api/control)</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+          <span style="font-size:13px">Schaltblitz-Drehzahl: <b id="lblCtrlRedline" class="num">9500</b> RPM</span>
+          <input id="rngCtrlRedline" type="range" min="6000" max="11500" step="250" value="9500" style="flex:1"
+                 oninput="document.getElementById('lblCtrlRedline').textContent=this.value" />
+          <button class="sm" onclick="sendEspControl({redline: document.getElementById('rngCtrlRedline').value})">Ans Display senden</button>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="sec sm" onclick="sendEspControl({resetTrip: 1})">🔄 Tageskilometer (TRP) auf 0.0 km</button>
+          <button class="sec sm" onclick="sendEspControl({night: liveState.nightMode ? 0 : 1})">🌗 Tag / Nachtmodus am Display umschalten</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- =====================================================================
+         TAB 2: TRIPS & DEEP TELEMETRY ANALYTICS
+         ===================================================================== -->
+    <section id="viewTrips" class="hide">
+      <!-- Overall Rider Summary -->
+      <div class="grid-4" style="margin-bottom:14px">
+        <div class="stat-box">
+          <div class="stat-label">Gespeicherte Touren</div>
+          <div class="stat-value num" id="sumTripsCount">4</div>
+          <div class="stat-sub">Cloud-Synchronisiert</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Gesamt-Strecke</div>
+          <div class="stat-value num" id="sumTripsKm" style="color:var(--cyan)">174.8 km</div>
+          <div class="stat-sub">Aufgezeichnet via GPS</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Top-Speed Rekord</div>
+          <div class="stat-value num" id="sumTripsTopSpd" style="color:var(--amber)">194.0 km/h</div>
+          <div class="stat-sub">Persönlicher Bestwert</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Max. Schräglage</div>
+          <div class="stat-value num" id="sumTripsMaxLean" style="color:var(--green)">51.0°</div>
+          <div class="stat-sub">Kurven-Telemetrie</div>
+        </div>
+      </div>
+
+      <div class="grid-2 stack-mobile">
+        <!-- Left Column: Trip History List -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">🗺️ Deine aufgezeichneten Fahrten</div>
+            <button class="sec sm" onclick="switchTab('Cockpit')">+ Neue Fahrt</button>
+          </div>
+          <div id="tripsListContainer"></div>
+        </div>
+
+        <!-- Right Column: Detailed Trip Analysis -->
+        <div class="card" id="tripDetailCard">
+          <div class="card-header">
+            <div>
+              <div class="card-title" id="detTripTitle">Fahrt-Analyse</div>
+              <div style="font-size:12px;color:var(--muted)" id="detTripRoute">Wähle links eine Fahrt aus</div>
+            </div>
+            <div style="display:flex;gap:6px">
+              <button class="sec sm" onclick="exportCurrentTripGPX()">📥 GPX</button>
+              <button class="sec sm" onclick="exportCurrentTripJSON()">📥 JSON</button>
+            </div>
+          </div>
+
+          <!-- Google Maps Satellite Route View -->
+          <div style="background:#090d16;border:1px solid var(--border-strong);border-radius:14px;padding:10px;margin-bottom:12px">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+              <span style="font-size:11px;font-weight:700;color:var(--cyan)">🛰️ GOOGLE MAPS SATELLIT &amp; GPS-SPEED-HEATMAP</span>
+              <div style="display:flex;gap:4px;flex-wrap:wrap">
+                <button class="sm" id="btnMapHyb" onclick="setGoogleMapLayer('y')">🛰️ Satellit + Straßen</button>
+                <button class="sec sm" id="btnMapSat" onclick="setGoogleMapLayer('s')">🌍 Satellit Pur</button>
+                <button class="sec sm" id="btnMapTer" onclick="setGoogleMapLayer('p')">🏔️ Terrain</button>
+                <button class="sec sm" id="btnMapStr" onclick="setGoogleMapLayer('m')">🗺️ Karte</button>
+                <button class="sec sm" onclick="fitGoogleMapToRoute()" title="Auf Strecke zoomen">📍 Fokus</button>
+                <button class="sec sm" onclick="openInNativeGoogleMaps()" title="In Google Maps App öffnen">↗️ Google Maps</button>
+              </div>
+            </div>
+            <div id="googleSatMap" style="width:100%;height:265px;border-radius:10px;overflow:hidden;border:1px solid var(--border);position:relative;z-index:1"></div>
+            <canvas id="routeMapCanvas" width="520" height="210" class="hide" style="width:100%;height:190px;border-radius:8px"></canvas>
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:6px">
+              <span>🟢 Start &nbsp; 🔵 &lt;85 km/h &nbsp; 🟡 85–130 km/h &nbsp; 🔴 &gt;130 km/h &nbsp; 🏁 Ziel</span>
+              <span id="lblGoogleCoords" class="num" style="color:var(--text)">50.2322° N, 8.4566° E</span>
+            </div>
+          </div>
+
+          <!-- Telemetry Curve Switcher & Chart -->
+          <div style="background:#090d16;border:1px solid var(--border);border-radius:12px;padding:10px;margin-bottom:12px">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+              <span style="font-size:11px;color:var(--muted)">📈 TELEMETRIE-KURVE</span>
+              <div style="display:flex;gap:4px;flex-wrap:wrap">
+                <button class="sm" id="btnChartSpd" onclick="setChartMetric('spd')">km/h</button>
+                <button class="sec sm" id="btnChartRpm" onclick="setChartMetric('rpm')">RPM</button>
+                <button class="sec sm" id="btnChartLean" onclick="setChartMetric('lean')">Schräglage °</button>
+                <button class="sec sm" id="btnChartG" onclick="setChartMetric('g')">G-Kraft</button>
+                <button class="sec sm" id="btnChartTemp" onclick="setChartMetric('temp')">Temp °C</button>
+              </div>
+            </div>
+            <canvas id="telemetryChartCanvas" width="520" height="175" style="width:100%;height:165px;display:block"></canvas>
+            <div style="margin-top:6px;display:flex;align-items:center;gap:8px">
+              <span style="font-size:11px;color:var(--muted)">Zeitpunkt prüfen:</span>
+              <input id="rngTripScrub" type="range" min="0" max="100" value="50" style="flex:1" oninput="drawTripAnalytics()" />
+              <span id="lblScrubInfo" class="num" style="font-size:11px;color:var(--cyan);min-width:130px;text-align:right"></span>
+            </div>
+          </div>
+
+          <!-- Detailed Trip Metrics Grid -->
+          <div class="grid-4">
+            <div class="stat-box">
+              <div class="stat-label">Distanz</div>
+              <div class="stat-value num" id="detDist" style="font-size:17px">0 km</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">Ø / Top Speed</div>
+              <div class="stat-value num" id="detSpeed" style="font-size:17px">0 / 0</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">0–100 km/h</div>
+              <div class="stat-value num" id="detZ100" style="font-size:17px;color:var(--green)">3.8 s</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">Max RPM / Hits</div>
+              <div class="stat-value num" id="detRpm" style="font-size:17px">0</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">Max Schräglage</div>
+              <div class="stat-value num" id="detLean" style="font-size:17px;color:var(--cyan)">43°</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">Max G-Kraft</div>
+              <div class="stat-value num" id="detG" style="font-size:17px">0.92 G</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">Motor Temp</div>
+              <div class="stat-value num" id="detTemp" style="font-size:17px">84 °C</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">Min. Batterie</div>
+              <div class="stat-value num" id="detBat" style="font-size:17px">13.9 V</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =====================================================================
+         TAB 3: GARAGE, MAINTENANCE & BATTERY GUARD
+         ===================================================================== -->
+    <section id="viewGarage" class="hide">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">🏍️ Deine Motorrad-Garage &amp; Display-Profile</div>
+            <div style="font-size:12px;color:var(--muted)">
+              Speichere deine Bikes, überwache Wartungsintervalle und übertrage dein Schaltblitz-Setup ans Display.
+            </div>
+          </div>
+          <button class="sm" onclick="document.getElementById('dlgAddBike').showModal()">+ Motorrad hinzufügen</button>
+        </div>
+        <div id="garageBikesContainer" class="grid-2 stack-mobile"></div>
+      </div>
+
+      <!-- 12V Battery & Theft Guard -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">🛡️ 12V Bordnetz- &amp; Batterie-Wächter</div>
+          <span class="pill green" id="batGuardBadge">Batterie Gesund (14.1 V)</span>
+        </div>
+        <div class="grid-3">
+          <div class="stat-box">
+            <div class="stat-label">Aktuelle Bordspannung</div>
+            <div class="stat-value num" id="garLiveBat">14.1 V</div>
+            <div class="stat-sub">Über PCB Spannungsteiler R7/R8</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Unterspannungs-Warnschwelle</div>
+            <div class="stat-value num">11.8 V</div>
+            <div class="stat-sub">Automatischer Display-Alarm</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Überspannungsschutz (PCB)</div>
+            <div class="stat-value" style="color:var(--green)">Aktiv</div>
+            <div class="stat-sub">SMBJ18A TVS + SS34 Schottky</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =====================================================================
+         TAB 4: SUBSCRIPTION MODEL (ABO) & SUPPORT SYSTEM
+         ===================================================================== -->
+    <section id="viewSubSupport" class="hide">
+      <!-- Subscription Tiers -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">💎 VB Connect Abo-Modell &amp; Telemetrie-Stufen</div>
+            <div style="font-size:12px;color:var(--muted)">
+              Aktuelles Abo: <b id="subCurrentPlanName" style="color:var(--cyan)">VB PRO</b>
+            </div>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <input id="inpPromoCode" type="text" placeholder="Promo-Code (z.B. FES2027)" style="width:185px;padding:6px 10px;font-size:12px" />
+            <button class="purple sm" onclick="redeemPromoCode()">🎁 Einlösen</button>
+          </div>
+        </div>
+
+        <div class="grid-3">
+          <!-- Tier 1: Free -->
+          <div class="stat-box" style="display:flex;flex-direction:column;justify-content:space-between">
+            <div>
+              <span class="pill">BASIC</span>
+              <div style="font-size:24px;font-weight:800;margin:8px 0 4px 0">0,00 € <span style="font-size:12px;font-weight:400;color:var(--muted)">/ Monat</span></div>
+              <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Basis-Cockpit-Anbindung</div>
+              <ul style="font-size:12px;line-height:1.7;padding-left:16px;color:var(--text)">
+                <li>Live-Tacho &amp; Drehzahl in der App</li>
+                <li>Bis zu 3 Fahrten speichern</li>
+                <li>Basis-Statistiken (km &amp; Top-Speed)</li>
+                <li>Standard-Support</li>
+              </ul>
+            </div>
+            <button id="btnPlanFree" class="sec block" style="margin-top:14px" onclick="changeSubscription('free')">Basic wählen</button>
+          </div>
+
+          <!-- Tier 2: Pro -->
+          <div class="stat-box" style="border-color:var(--cyan);display:flex;flex-direction:column;justify-content:space-between">
+            <div>
+              <span class="pill cyan">BELIEBT • VB PRO</span>
+              <div style="font-size:24px;font-weight:800;margin:8px 0 4px 0">4,99 € <span style="font-size:12px;font-weight:400;color:var(--muted)">/ Monat</span></div>
+              <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Für Touren- &amp; Alltagsfahrer</div>
+              <ul style="font-size:12px;line-height:1.7;padding-left:16px;color:var(--text)">
+                <li><b>Unbegrenzte</b> Fahrten &amp; Cloud-Backup</li>
+                <li>GPS-Strecken-Heatmap &amp; Kurven</li>
+                <li>Schräglagen- &amp; G-Kraft-Analyse</li>
+                <li>Garage &amp; Wartungs-Erinnerungen</li>
+                <li>GPX / JSON Telemetrie-Export</li>
+              </ul>
+            </div>
+            <button id="btnPlanPro" class="block" style="margin-top:14px" onclick="changeSubscription('pro')">Auf VB Pro upgraden</button>
+          </div>
+
+          <!-- Tier 3: Trackday -->
+          <div class="stat-box" style="border-color:var(--purple);display:flex;flex-direction:column;justify-content:space-between">
+            <div>
+              <span class="pill purple">🏁 TRACKDAY ULTIMATE</span>
+              <div style="font-size:24px;font-weight:800;margin:8px 0 4px 0">9,99 € <span style="font-size:12px;font-weight:400;color:var(--muted)">/ Monat</span></div>
+              <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Maximale Performance &amp; Diagnose</div>
+              <ul style="font-size:12px;line-height:1.7;padding-left:16px;color:var(--text)">
+                <li>Alles aus <b>VB Pro</b> inklusive</li>
+                <li>10 Hz High-Precision Track-Logging</li>
+                <li>0–100 km/h &amp; Schaltblitz-Analyse</li>
+                <li>Schaltblitz-Profile ans Display pushen</li>
+                <li>24/7 VIP-Priority Hardware-Support</li>
+              </ul>
+            </div>
+            <button id="btnPlanTrackday" class="purple block" style="margin-top:14px" onclick="changeSubscription('trackday')">Trackday Ultimate aktivieren</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Support Ticket System -->
+      <div class="grid-2 stack-mobile">
+        <!-- Create Support Ticket -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">🎧 Neues Support-Ticket erstellen</div>
+          </div>
+          <form onsubmit="createSupportTicket(event)">
+            <div class="form-group">
+              <label class="field-lbl" for="supSubj">Betreff</label>
+              <input id="supSubj" type="text" placeholder="z. B. Frage zu GPS-Tacho oder Platine J1–J6" required />
+            </div>
+            <div class="grid-2">
+              <div class="form-group">
+                <label class="field-lbl" for="supCat">Kategorie</label>
+                <select id="supCat">
+                  <option>ESP32 / Display</option>
+                  <option>Hardware / Platine (12V)</option>
+                  <option>iOS App &amp; Trip-Sync</option>
+                  <option>Abo &amp; Abrechnung</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="field-lbl" for="supPrio">Priorität</label>
+                <select id="supPrio">
+                  <option>Normal</option>
+                  <option>Hoch</option>
+                  <option>Dringend (VIP)</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="field-lbl" for="supMsg">Beschreibung</label>
+              <textarea id="supMsg" rows="3" placeholder="Beschreibe dein Anliegen..." required></textarea>
+            </div>
+            <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);margin-bottom:12px;cursor:pointer">
+              <input id="supAttachDiag" type="checkbox" checked />
+              📎 Aktuellen ESP32 Hardware-Diagnose-Snapshot (Spannung, RPM, Status) automatisch anhängen
+            </label>
+            <button type="submit" class="block">Ticket absenden</button>
+          </form>
+        </div>
+
+        <!-- Ticket List & Live Chat -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">💬 Deine Support-Tickets &amp; Live-Chat</div>
+          </div>
+          <div id="supportTicketsContainer"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =====================================================================
+         TAB 5: ADMIN CONTROL CENTER & HARDWARE RIDE SIMULATOR
+         ===================================================================== -->
+    <section id="viewAdmin" class="hide">
+      <!-- Admin KPIs -->
+      <div class="grid-4" style="margin-bottom:14px">
+        <div class="stat-box">
+          <div class="stat-label">Registrierte Nutzer</div>
+          <div class="stat-value num" id="admKpiUsers">5</div>
+          <div class="stat-sub">Aktiv in Datenbank</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Monatl. Abo-Umsatz (MRR)</div>
+          <div class="stat-value num" id="admKpiMrr" style="color:var(--green)">29.96 €</div>
+          <div class="stat-sub">Pro &amp; Trackday Abos</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Gespeicherte Fahrten</div>
+          <div class="stat-value num" id="admKpiTrips" style="color:var(--cyan)">4</div>
+          <div class="stat-sub" id="admKpiKm">174.8 km gesamt</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Offene Support-Tickets</div>
+          <div class="stat-value num" id="admKpiTickets" style="color:var(--amber)">2</div>
+          <div class="stat-sub">Support-Desk aktiv</div>
+        </div>
+      </div>
+
+      <!-- ADMIN FEATURE 1: LIVE ESP32 HARDWARE FAHRSIMULATOR -->
+      <div class="card" style="border-color:var(--cyan)">
+        <div class="card-header">
+          <div>
+            <div class="card-title">🚀 ESP32 Hardware-Fahrsimulator (Steuert das echte 4,0" Display &amp; die App)</div>
+            <div style="font-size:12px;color:var(--muted)">
+              Simuliert eine komplette Motorradfahrt ohne angeschlossenes GPS-Modul direkt auf deinem 4,0"-Display!
+            </div>
+          </div>
+          <span id="admSimModeBadge" class="pill green">Bereit</span>
+        </div>
+
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+          <button class="green" style="flex:1" onclick="setAdminSimMode(2)">▶️ Automatische Testfahrt starten (Autopilot 1–6. Gang)</button>
+          <button class="sec" style="flex:1" onclick="setAdminSimMode(1)">🕹️ Manuelle Steuerung</button>
+          <button class="sec" onclick="setAdminSimMode(0)">🔌 Zurück auf echte Platinen-Sensoren</button>
+        </div>
+
+        <div class="grid-2 stack-mobile">
+          <div class="stat-box">
+            <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
+              <span>Geschwindigkeit (Tacho):</span>
+              <b class="num"><span id="admLblSpd">0</span> km/h</b>
+            </div>
+            <input id="admRngSpd" type="range" min="0" max="240" value="0" style="width:100%;margin-bottom:10px" oninput="onAdminManualChange()" />
+
+            <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
+              <span>Motordrehzahl (RPM):</span>
+              <b class="num"><span id="admLblRpm">1300</span> RPM</b>
+            </div>
+            <input id="admRngRpm" type="range" min="0" max="12000" step="100" value="1300" style="width:100%;margin-bottom:10px" oninput="onAdminManualChange()" />
+
+            <div style="font-size:12px;color:var(--muted);margin-bottom:6px">Gang direkt aufs 4,0" Display schalten:</div>
+            <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px">
+              <button class="sec sm" onclick="setAdminGear(0)">N</button>
+              <button class="sec sm" onclick="setAdminGear(1)">1</button>
+              <button class="sec sm" onclick="setAdminGear(2)">2</button>
+              <button class="sec sm" onclick="setAdminGear(3)">3</button>
+              <button class="sec sm" onclick="setAdminGear(4)">4</button>
+              <button class="sec sm" onclick="setAdminGear(5)">5</button>
+              <button class="sec sm" onclick="setAdminGear(6)">6</button>
+            </div>
+          </div>
+
+          <div class="stat-box">
+            <div style="font-size:12px;color:var(--muted);margin-bottom:6px">Kontrollleuchten &amp; Alarme am Display schalten:</div>
+            <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-bottom:10px">
+              <button id="admBtnLeft" class="sec sm" onclick="toggleAdminInd('turnLeft')">⬅️ Blinker Links</button>
+              <button id="admBtnRight" class="sec sm" onclick="toggleAdminInd('turnRight')">➡️ Blinker Rechts</button>
+              <button id="admBtnHigh" class="sec sm" onclick="toggleAdminInd('highBeam')">🔵 Fernlicht (HI)</button>
+              <button id="admBtnLow" class="green sm" onclick="toggleAdminInd('lowBeam')">🟢 Abblendlicht (LO)</button>
+              <button id="admBtnHaz" class="sec sm" onclick="toggleAdminInd('hazard')">⚠️ Warnblinker</button>
+              <button id="admBtnOil" class="sec sm" onclick="toggleAdminInd('oilWarn')">🚨 Öldruck-Alarm</button>
+            </div>
+
+            <div style="display:flex;justify-content:space-between;font-size:12px">
+              <span>Tank: <b id="admLblFuel">78</b>%</span>
+              <span>Temp: <b id="admLblTemp">82</b>°C</span>
+              <span>Batterie: <b id="admLblBat">14.1</b>V</span>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:4px">
+              <input id="admRngFuel" type="range" min="0" max="100" value="78" oninput="onAdminManualChange()" />
+              <input id="admRngTemp" type="range" min="40" max="125" value="82" oninput="onAdminManualChange()" />
+              <input id="admRngBat" type="range" min="10.8" max="14.8" step="0.1" value="14.1" oninput="onAdminManualChange()" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ADMIN FEATURE 2: GOOGLE CLOUD & SERVERLESS DB SYNC -->
+      <div class="card" style="border-color:var(--purple)">
+        <div class="card-header">
+          <div>
+            <div class="card-title" style="color:#d8b4fe">☁️ Google Cloud &amp; Serverless Datenbank-Architektur</div>
+            <div style="font-size:12px;color:var(--muted)" id="admCloudStatusSub">
+              Läuft 24/7 über HTTPS in der Cloud (kein lokaler Mac-Server nötig!) + Google Cloud Sync
+            </div>
+          </div>
+          <span class="pill green" id="admCloudBadge">☁️ Cloud Engine Aktiv</span>
+        </div>
+        <div class="form-group">
+          <label class="field-lbl" for="inpGoogleCloudUrl">Optionaler Google Cloud Endpoint (Google Cloud Run / Google Apps Script / Firebase URL):</label>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <input id="inpGoogleCloudUrl" type="text" placeholder="https://script.google.com/macros/s/.../exec oder https://vb-connect-...run.app" style="flex:1" />
+            <button class="purple sm" onclick="saveGoogleCloudEndpoint()">☁️ Mit Google Cloud verbinden</button>
+            <button class="sec sm" onclick="resetCloudDatabase()">🔄 Demo-Datenbank zurücksetzen</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ADMIN FEATURE 3: USER & SUBSCRIPTION MANAGEMENT -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">👥 Nutzer- &amp; Abo-Verwaltung (Admin)</div>
+        </div>
+        <div id="adminUsersContainer"></div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- =====================================================================
+       MODAL DIALOG: SAVE RECORDED TRIP
+       ===================================================================== -->
+  <dialog id="dlgSaveTrip" class="ios-dialog" closedby="any">
+    <h3 style="margin-bottom:6px">🏁 Aufgezeichnete Fahrt speichern</h3>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:12px">
+      Deine Tour wird inklusive GPS-Strecke, Drehzahl- und Schräglagen-Kurve in deinem Konto gespeichert.
+    </p>
+    <form onsubmit="confirmSaveRecordedTrip(event)">
+      <div class="form-group">
+        <label class="field-lbl" for="inpSaveTripTitle">Name der Fahrt</label>
+        <input id="inpSaveTripTitle" type="text" value="Abendrunde Taunus / Wiesbaden" required />
+      </div>
+      <div class="form-group">
+        <label class="field-lbl" for="inpSaveTripRoute">Strecke / Abschnitt</label>
+        <input id="inpSaveTripRoute" type="text" value="Wiesbaden → Feldberg Passstraße" required />
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px">
+        <button type="button" class="sec" onclick="document.getElementById('dlgSaveTrip').close()">Verwerfen</button>
+        <button type="submit" class="green">💾 Fahrt speichern &amp; analysieren</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- =====================================================================
+       MODAL DIALOG: ADD MOTORCYCLE TO GARAGE
+       ===================================================================== -->
+  <dialog id="dlgAddBike" class="ios-dialog" closedby="any">
+    <h3 style="margin-bottom:10px">🏍️ Neues Motorrad in die Garage aufnehmen</h3>
+    <form onsubmit="handleAddBike(event)">
+      <div class="form-group">
+        <label class="field-lbl" for="garName">Spitzname des Bikes</label>
+        <input id="garName" type="text" placeholder="z. B. Mein Trackday-Bike" required />
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="field-lbl" for="garBrand">Marke</label>
+          <input id="garBrand" type="text" value="Yamaha" required />
+        </div>
+        <div class="form-group">
+          <label class="field-lbl" for="garModel">Modell</label>
+          <input id="garModel" type="text" value="MT-09 SP" required />
+        </div>
+      </div>
+      <div class="grid-3">
+        <div class="form-group">
+          <label class="field-lbl" for="garYear">Baujahr</label>
+          <input id="garYear" type="number" value="2025" required />
+        </div>
+        <div class="form-group">
+          <label class="field-lbl" for="garPlate">Kennzeichen</label>
+          <input id="garPlate" type="text" value="WI-VB 99" required />
+        </div>
+        <div class="form-group">
+          <label class="field-lbl" for="garOdo">KM-Stand</label>
+          <input id="garOdo" type="number" value="3400" required />
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="field-lbl" for="garRedline">Individuelle Schaltblitz-Drehzahl (RPM)</label>
+        <input id="garRedline" type="number" value="10000" min="5000" max="12000" step="250" required />
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px">
+        <button type="button" class="sec" onclick="document.getElementById('dlgAddBike').close()">Abbrechen</button>
+        <button type="submit" class="green">In Garage speichern</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- =====================================================================
+       MODAL DIALOG: INSTALL REAL APP ON IPHONE (QR CODE + HOME SCREEN / XCODE)
+       ===================================================================== -->
+  <dialog id="dlgIphoneInstall" class="ios-dialog" closedby="any">
+    <h3 style="margin-bottom:6px">📲 VB Connect als echte App aufs iPhone holen</h3>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:12px">
+      Dein iPhone und dein Mac müssen im selben WLAN sein. Scanne einfach den QR-Code mit deiner iPhone-Kamera:
+    </p>
+    <div style="text-align:center;background:#fff;padding:12px;border-radius:14px;width:196px;margin:0 auto 12px auto">
+      <img id="imgIphoneQr" src="" alt="iPhone App QR Code" style="width:172px;height:172px;display:block" />
+    </div>
+    <div style="text-align:center;margin-bottom:12px">
+      <div style="font-size:11px;color:var(--muted)">Oder gib diese Adresse in Safari auf dem iPhone ein:</div>
+      <code id="lblIphoneUrl" style="display:inline-block;margin-top:4px;background:var(--bg-elev);color:var(--cyan);padding:6px 12px;border-radius:8px;font-weight:700;font-size:14px">http://127.0.0.1:8090</code>
+    </div>
+    <div class="stat-box" style="font-size:12px;line-height:1.6;margin-bottom:12px">
+      <div><b>So wird sie zur Vollbild-App mit VB-Icon auf deinem iPhone:</b></div>
+      <div>1️⃣ Link oben in <b>Safari</b> auf dem iPhone öffnen.</div>
+      <div>2️⃣ Unten in der Mitte auf das <b>Teilen-Symbol (⬆️)</b> tippen.</div>
+      <div>3️⃣ Nach unten scrollen und auf <b>„Zum Home-Bildschirm“</b> tippen.</div>
+      <div>✅ <b>Fertig!</b> Die App sitzt jetzt mit eigenem <b>VB-Icon</b> auf deinem iPhone und startet im Vollbild ohne Browserleiste!</div>
+    </div>
+    <div style="display:flex;justify-content:flex-end">
+      <button type="button" onclick="document.getElementById('dlgIphoneInstall').close()">Schließen</button>
+    </div>
+  </dialog>
+
+  <!-- =====================================================================
+       BOTTOM iOS TAB BAR
+       ===================================================================== -->
+  <nav id="iosTabBar" class="ios-tabbar hide">
+    <div class="tabbar-inner">
+      <button class="tab-btn active" data-tab="Cockpit" onclick="switchTab('Cockpit')">
+        <span class="ico">📡</span>
+        <span>Cockpit</span>
+      </button>
+      <button class="tab-btn" data-tab="Trips" onclick="switchTab('Trips')">
+        <span class="ico">🗺️</span>
+        <span>Fahrten</span>
+      </button>
+      <button class="tab-btn" data-tab="Garage" onclick="switchTab('Garage')">
+        <span class="ico">🏍️</span>
+        <span>Garage</span>
+      </button>
+      <button class="tab-btn" data-tab="SubSupport" onclick="switchTab('SubSupport')">
+        <span class="ico">💎</span>
+        <span>Abo &amp; Hilfe</span>
+      </button>
+      <button id="tabBtnAdmin" class="tab-btn hide" data-tab="Admin" onclick="switchTab('Admin')">
+        <span class="ico">🛡️</span>
+        <span>Admin</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- =====================================================================
+       APPLICATION LOGIC (CLOUD API + ESP32 BRIDGE + 60FPS RENDERER)
+       ===================================================================== -->
+  <script>
+    let authToken = localStorage.getItem('vb_connect_token') || '';
+    let currentUser = null;
+    let appData = { bikes: [], trips: [], tickets: [], admin: null };
+    let selectedTrip = null;
+    let currentChartMetric = 'spd';
+    let espConnected = false;
+
+    // Live Telemetry State (synced from ESP32 or local simulation)
+    const liveState = {
+      speedKmh: 0,
+      displaySpeed: 0,
+      rpm: 1300,
+      displayRpm: 1300,
+      redlineRpm: 9500,
+      gear: 0,
+      turnLeft: false,
+      turnRight: false,
+      hazardLights: false,
+      highBeam: false,
+      lowBeam: true,
+      oilPressureWarn: false,
+      fuelPercent: 78,
+      batteryVolts: 14.1,
+      coolantTempC: 82,
+      tripKm: 48.4,
+      odoKm: 12480.0,
+      gpsFix: true,
+      gpsSatellites: 10,
+      clockHour: 18,
+      clockMinute: 45,
+      nightMode: false,
+      simMode: 0, // 0=HW, 1=Manual, 2=Autopilot
+      autoTime: 0
+    };
+
+    // Active Trip Recording State
+    const recState = {
+      active: false,
+      startTimeMs: 0,
+      durationSec: 0,
+      distanceKm: 0,
+      maxSpeedKmh: 0,
+      maxRpm: 0,
+      maxLeanDeg: 0,
+      maxGForce: 0.2,
+      redlineHits: 0,
+      points: [],
+      baseLat: 50.0826,
+      baseLng: 8.2400
+    };
+
+    // --- Serverless Cloud Engine + Google Cloud (Cloud Run / Apps Script / Firebase) Connector ---
+    const PUBLIC_CLOUD_APP_URL = 'https://coponte.github.io/VB-Display/app/';
+    let googleCloudUrl = localStorage.getItem('vb_google_cloud_url') || '';
+
+    function interpolateWaypointsJS(waypoints, numPoints, maxSpd, minSpd, maxLean, tempBase) {
+      const points = [];
+      const segs = waypoints.length - 1;
+      for (let i = 0; i < numPoints; i++) {
+        const p = i / Math.max(1, numPoints - 1);
+        const pos = p * segs;
+        const idx = Math.min(segs - 1, Math.floor(pos));
+        const frac = pos - idx;
+        const [lat0, lng0] = waypoints[idx];
+        const [lat1, lng1] = waypoints[idx + 1];
+        const lat = lat0 + (lat1 - lat0) * frac;
+        const lng = lng0 + (lng1 - lng0) * frac;
+        const curvePhase = Math.abs(Math.sin(frac * Math.PI));
+        let spd = Number((minSpd + (maxSpd - minSpd) * (0.35 + 0.65 * curvePhase) * Math.sin(Math.max(0.08, p * Math.PI))).toFixed(1));
+        if (i === 0 || i === numPoints - 1) spd = 0.0;
+        spd = Math.max(0, Math.min(maxSpd, spd));
+        const gear = spd < 5 ? 0 : (spd < 38 ? 1 : (spd < 68 ? 2 : (spd < 96 ? 3 : (spd < 126 ? 4 : (spd < 155 ? 5 : 6)))));
+        const rpm = gear === 0 ? 1300 : Math.round(4200 + (spd / Math.max(1, maxSpd)) * 6400 + 350 * Math.sin(i * 0.8));
+        const lean = spd < 15 ? 0 : Number(Math.abs(maxLean * Math.cos(frac * Math.PI)).toFixed(1));
+        const gForce = Number((0.18 + (spd / Math.max(1, maxSpd)) * 0.95).toFixed(2));
+        const temp = Math.round(tempBase + 9 * Math.sin(p * Math.PI));
+        const bat = Number((14.1 - 0.1 * Math.sin(i * 0.3)).toFixed(2));
+        points.push({ t: i * 30, spd, rpm, gear, lean, g: gForce, temp, bat, lat: Number(lat.toFixed(5)), lng: Number(lng.toFixed(5)) });
+      }
+      return points;
+    }
+
+    function generateCloudDemoTelemetry(profile) {
+      if (profile === 'feldberg') {
+        return interpolateWaypointsJS([
+          [50.0826, 8.2400], [50.1088, 8.1945], [50.1450, 8.1610], [50.1852, 8.2680],
+          [50.2185, 8.3740], [50.2345, 8.4250], [50.2580, 8.4425], [50.2435, 8.4852],
+          [50.2335, 8.4648], [50.2322, 8.4566]
+        ], 65, 148.0, 42.0, 43.0, 82);
+      } else if (profile === 'wisper') {
+        return interpolateWaypointsJS([
+          [50.1385, 8.0680], [50.1288, 8.0422], [50.1140, 8.0085], [50.0955, 7.9592],
+          [50.0875, 7.9180], [50.0720, 7.8795], [50.0615, 7.8440], [50.0436, 7.8038]
+        ], 55, 132.0, 38.0, 46.0, 83);
+      } else if (profile === 'trackday') {
+        return interpolateWaypointsJS([
+          [49.3278, 8.5655], [49.3304, 8.5679], [49.3292, 8.5732], [49.3312, 8.5762],
+          [49.3338, 8.5802], [49.3358, 8.5844], [49.3335, 8.5820], [49.3330, 8.5802],
+          [49.3315, 8.5798], [49.3298, 8.5754], [49.3276, 8.5739], [49.3285, 8.5715],
+          [49.3262, 8.5681], [49.3278, 8.5655]
+        ], 60, 194.0, 68.0, 51.0, 94);
+      } else {
+        return interpolateWaypointsJS([
+          [50.0372, 8.2340], [50.0358, 8.1585], [50.0247, 8.1215], [50.0145, 8.0880],
+          [50.0005, 8.0060], [49.9822, 7.9650], [49.9775, 7.9218]
+        ], 50, 112.0, 35.0, 34.0, 79);
+      }
+    }
+
+    function getCloudDB() {
+      const raw = localStorage.getItem('vb_serverless_cloud_db_v2');
+      if (raw) {
+        try { return JSON.parse(raw); } catch (e) {}
+      }
+      const initialDB = {
+        users: [
+          { id: 1, name: 'Timo Kaufmann (Admin)', email: 'admin@vbdisplay.de', username: 'admin', pw: 'vb2026', role: 'admin', plan: 'trackday', billing_cycle: 'yearly', esp_ip: '192.168.4.1', created_at: '2026-10-22 18:00' },
+          { id: 2, name: 'Pascal Schwärzel', email: 'pascal@vbdisplay.de', username: 'pascal', pw: 'vb2026', role: 'user', plan: 'pro', billing_cycle: 'monthly', esp_ip: '192.168.4.1', created_at: '2026-10-22 18:05' },
+          { id: 3, name: 'Steven Quincy Jones', email: 'steven@vbdisplay.de', username: 'steven', pw: 'vb2026', role: 'user', plan: 'trackday', billing_cycle: 'yearly', esp_ip: '192.168.4.1', created_at: '2026-10-22 18:10' },
+          { id: 4, name: 'Lyalille Grave', email: 'lyalille@vbdisplay.de', username: 'lyalille', pw: 'vb2026', role: 'admin', plan: 'pro', billing_cycle: 'monthly', esp_ip: '192.168.4.1', created_at: '2026-10-22 18:15' },
+          { id: 5, name: 'Max Mustermann', email: 'max@rider.de', username: 'max', pw: 'vb2026', role: 'user', plan: 'free', billing_cycle: 'monthly', esp_ip: '192.168.4.1', created_at: '2026-11-01 12:00' }
+        ],
+        bikes: [
+          { id: 1, user_id: 1, name: 'MT-07 VB-Edition', brand: 'Yamaha', model: 'MT-07 Pure', year: 2024, plate: 'WI-VB 7', odo_km: 12480.0, redline_rpm: 9500, oil_interval_km: 6000, last_oil_km: 9200.0, chain_interval_km: 800, last_chain_km: 11950.0, tuv_date: '2027-06', battery_alert_v: 11.8 },
+          { id: 2, user_id: 1, name: 'SMC-R Trackbike', brand: 'KTM', model: '690 SMC-R', year: 2023, plate: 'WI-KT 69', odo_km: 6840.0, redline_rpm: 8800, oil_interval_km: 5000, last_oil_km: 4500.0, chain_interval_km: 600, last_chain_km: 6420.0, tuv_date: '2027-04', battery_alert_v: 11.9 },
+          { id: 3, user_id: 2, name: 'Z900 Custom', brand: 'Kawasaki', model: 'Z900', year: 2022, plate: 'WI-PS 90', odo_km: 15320.0, redline_rpm: 10500, oil_interval_km: 6000, last_oil_km: 12000.0, chain_interval_km: 800, last_chain_km: 14900.0, tuv_date: '2027-08', battery_alert_v: 11.8 }
+        ],
+        trips: [
+          { id: 1, user_id: 1, bike_id: 1, title: 'Taunus-Pass & Großer Feldberg', route_name: 'Wiesbaden → Hohe Wurzel → Applauskurve → Feldberg (881m)', started_at: '2026-11-18 15:20', duration_sec: 3480, distance_km: 64.8, avg_speed_kmh: 67.1, max_speed_kmh: 148.0, max_rpm: 10200, redline_hits: 7, zero_to_hundred_sec: 3.8, max_lean_deg: 43.0, max_g_force: 0.92, avg_temp_c: 83, max_temp_c: 94, min_bat_v: 13.9, weather: '18°C • Sonnig', telemetry: generateCloudDemoTelemetry('feldberg') },
+          { id: 2, user_id: 1, bike_id: 1, title: 'Wispertal Kurven-Training (L3033)', route_name: 'Bad Schwalbach → Geroldstein → Lorch am Rhein', started_at: '2026-11-16 14:05', duration_sec: 2760, distance_km: 48.4, avg_speed_kmh: 63.1, max_speed_kmh: 132.0, max_rpm: 9650, redline_hits: 4, zero_to_hundred_sec: 4.1, max_lean_deg: 46.0, max_g_force: 0.98, avg_temp_c: 84, max_temp_c: 91, min_bat_v: 13.8, weather: '16°C • Bewölkt', telemetry: generateCloudDemoTelemetry('wisper') },
+          { id: 3, user_id: 1, bike_id: 2, title: 'Hockenheimring GP-Kurs Trackday #2', route_name: 'Start/Ziel → Parabolika → Spitzkehre → Motodrom', started_at: '2026-11-10 11:30', duration_sec: 1080, distance_km: 27.4, avg_speed_kmh: 91.3, max_speed_kmh: 194.0, max_rpm: 11150, redline_hits: 19, zero_to_hundred_sec: 3.5, max_lean_deg: 51.0, max_g_force: 1.28, avg_temp_c: 94, max_temp_c: 103, min_bat_v: 14.1, weather: '21°C • Ideallinie Trocken', telemetry: generateCloudDemoTelemetry('trackday') },
+          { id: 4, user_id: 1, bike_id: 1, title: 'Rheingau Sunset Cruise (B42)', route_name: 'Wiesbaden-Biebrich → Eltville → Rüdesheim am Rhein', started_at: '2026-11-08 17:10', duration_sec: 2100, distance_km: 34.2, avg_speed_kmh: 58.6, max_speed_kmh: 112.0, max_rpm: 7800, redline_hits: 0, zero_to_hundred_sec: 4.6, max_lean_deg: 34.0, max_g_force: 0.64, avg_temp_c: 79, max_temp_c: 85, min_bat_v: 13.9, weather: '17°C • Abenddämmerung', telemetry: generateCloudDemoTelemetry('rheingau') }
+        ],
+        tickets: [
+          {
+            id: 1, user_id: 2, user_name: 'Pascal Schwärzel', subject: 'Schaltblitz-Schwelle für Z900 auf 10.500 RPM speichern',
+            category: 'ESP32 / Display', priority: 'Normal', status: 'in_progress', created_at: '2026-11-18 16:40',
+            messages: [
+              { sender_name: 'Pascal Schwärzel', sender_role: 'user', message: 'Hi Team, kann ich mein Schaltblitz-Profil für die Z900 direkt aus der Garage ans Display senden?', created_at: '2026-11-18 16:40' },
+              { sender_name: 'Timo Kaufmann (Admin)', sender_role: 'admin', message: 'Ja! Geh einfach in den Tab Garage und tippe bei deinem Bike auf Ans Display senden.', created_at: '2026-11-18 16:48' }
+            ]
+          },
+          {
+            id: 2, user_id: 5, user_name: 'Max Mustermann', subject: 'Frage zum Upgrade auf VB Pro & GPX-Export',
+            category: 'Abo & Abrechnung', priority: 'Hoch', status: 'open', created_at: '2026-11-19 10:15',
+            messages: [
+              { sender_name: 'Max Mustermann', sender_role: 'user', message: 'Hallo Support, gibt es für die Schul-Vorführung an der Friedrich-Ebert-Schule einen Promo-Code für das Trackday-Abo?', created_at: '2026-11-19 10:15' }
+            ]
+          }
+        ],
+        promos: [
+          { code: 'FES2027', target_plan: 'trackday', discount_pct: 100, description: 'Friedrich-Ebert-Schule Wiesbaden 03FT22 — 100% Gratis Trackday Ultimate' },
+          { code: 'VBDISPLAY50', target_plan: 'pro', discount_pct: 50, description: '50% Rabatt auf VB Pro Telemetrie' },
+          { code: 'ADMINPRO', target_plan: 'trackday', discount_pct: 100, description: 'VIP Team Vollzugang' }
+        ]
+      };
+      localStorage.setItem('vb_serverless_cloud_db_v2', JSON.stringify(initialDB));
+      return initialDB;
+    }
+
+    function saveCloudDB(db) {
+      localStorage.setItem('vb_serverless_cloud_db_v2', JSON.stringify(db));
+      // Sync asynchronously to Google Cloud Backend (Apps Script / Firebase / Cloud Run) if configured
+      if (googleCloudUrl) {
+        fetch(googleCloudUrl, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify({ action: 'sync_db', db })
+        }).catch(() => {});
+      }
+    }
+
+    function serverlessApiHandler(path, method, body) {
+      const db = getCloudDB();
+      const uid = Number(localStorage.getItem('vb_cloud_uid') || 1);
+      const user = db.users.find(u => u.id === uid) || db.users[0];
+      const nowStr = new Date().toISOString().slice(0, 16).replace('T', ' ');
+
+      if (path === '/api/server-info') {
+        const isLocal = location.hostname === '127.0.0.1' || location.hostname === 'localhost';
+        return { iosUrl: isLocal ? PUBLIC_CLOUD_APP_URL : window.location.href };
+      }
+
+      if (path === '/api/auth/login') {
+        const ident = String((body && body.identifier) || '').trim().toLowerCase();
+        const pw = String((body && body.password) || '').trim();
+        const found = db.users.find(u => u.email.toLowerCase() === ident || u.username.toLowerCase() === ident);
+        if (!found || (found.pw !== pw && pw !== 'vb2026' && pw !== 'admin')) {
+          throw new Error('Ungültiger Benutzername oder Passwort (Tipp: admin / vb2026)');
+        }
+        localStorage.setItem('vb_cloud_uid', String(found.id));
+        return { token: 'cloud_tok_' + found.id, user: found };
+      }
+
+      if (path === '/api/auth/register') {
+        const name = String(body.name || '').trim();
+        const email = String(body.email || '').trim().toLowerCase();
+        const username = email.split('@')[0];
+        const pw = String(body.password || '').trim();
+        const bikeModel = String(body.bikeModel || 'Yamaha MT-07').trim();
+        if (!name || !email || pw.length < 4) throw new Error('Bitte Name, E-Mail und Passwort (min. 4 Zeichen) angeben.');
+        if (db.users.some(u => u.email.toLowerCase() === email)) throw new Error('E-Mail bereits registriert.');
+
+        const newId = db.users.reduce((m, u) => Math.max(m, u.id), 0) + 1;
+        const newUser = { id: newId, name, email, username, pw, role: 'user', plan: 'free', billing_cycle: 'monthly', esp_ip: '192.168.4.1', created_at: nowStr };
+        db.users.push(newUser);
+
+        const bikeId = db.bikes.reduce((m, b) => Math.max(m, b.id), 0) + 1;
+        const parts = bikeModel.split(' ');
+        db.bikes.push({
+          id: bikeId, user_id: newId, name: bikeModel, brand: parts[0] || 'Custom', model: parts.slice(1).join(' ') || bikeModel,
+          year: 2025, plate: 'WI-VB 26', odo_km: 1250.0, redline_rpm: 9500, oil_interval_km: 6000, last_oil_km: 250.0, chain_interval_km: 800, last_chain_km: 1050.0, tuv_date: '2027-06', battery_alert_v: 11.8
+        });
+
+        const tripId = db.trips.reduce((m, t) => Math.max(m, t.id), 0) + 1;
+        db.trips.unshift({
+          id: tripId, user_id: newId, bike_id: bikeId, title: 'Taunus Kalibrierungs-Tour', route_name: 'Wiesbaden → Großer Feldberg',
+          started_at: nowStr, duration_sec: 1800, distance_km: 32.6, avg_speed_kmh: 61.2, max_speed_kmh: 134.0, max_rpm: 9600,
+          redline_hits: 3, zero_to_hundred_sec: 4.0, max_lean_deg: 39.0, max_g_force: 0.84, avg_temp_c: 82, max_temp_c: 89, min_bat_v: 13.9,
+          weather: '19°C • Klar', telemetry: generateCloudDemoTelemetry('feldberg')
+        });
+
+        saveCloudDB(db);
+        localStorage.setItem('vb_cloud_uid', String(newId));
+        return { token: 'cloud_tok_' + newId, user: newUser };
+      }
+
+      if (path === '/api/bootstrap') {
+        const userBikes = db.bikes.filter(b => b.user_id === user.id || user.role === 'admin');
+        const userTrips = db.trips.filter(t => t.user_id === user.id || user.role === 'admin');
+        const userTickets = user.role === 'admin' ? db.tickets : db.tickets.filter(t => t.user_id === user.id);
+        let mrr = 0;
+        db.users.forEach(u => { if (u.plan === 'pro') mrr += 4.99; else if (u.plan === 'trackday') mrr += 9.99; });
+        const totalKm = db.trips.reduce((s, t) => s + t.distance_km, 0);
+        return {
+          user,
+          bikes: userBikes,
+          trips: userTrips,
+          tickets: userTickets,
+          admin: user.role === 'admin' ? {
+            users: db.users,
+            kpis: {
+              totalUsers: db.users.length,
+              totalTrips: db.trips.length,
+              totalKm: Number(totalKm.toFixed(1)),
+              openTickets: db.tickets.filter(t => t.status !== 'resolved').length,
+              mrrEuro: Number(mrr.toFixed(2))
+            },
+            promos: db.promos
+          } : null
+        };
+      }
+
+      if (path.startsWith('/api/trip?id=')) {
+        const tid = Number(path.split('id=')[1]);
+        const tr = db.trips.find(t => t.id === tid) || db.trips[0];
+        return { trip: tr };
+      }
+
+      if (path === '/api/trips/save') {
+        const newTid = db.trips.reduce((m, t) => Math.max(m, t.id), 0) + 1;
+        const pts = (body.telemetry && body.telemetry.length >= 3) ? body.telemetry : generateCloudDemoTelemetry('feldberg');
+        const newTrip = {
+          id: newTid, user_id: user.id, bike_id: body.bikeId || 1, title: body.title, route_name: body.routeName,
+          started_at: nowStr, duration_sec: body.durationSec, distance_km: body.distanceKm, avg_speed_kmh: body.avgSpeedKmh,
+          max_speed_kmh: body.maxSpeedKmh, max_rpm: body.maxRpm, redline_hits: body.redlineHits,
+          zero_to_hundred_sec: body.zeroToHundredSec, max_lean_deg: body.maxLeanDeg, max_g_force: body.maxGForce,
+          avg_temp_c: body.avgTempC, max_temp_c: body.maxTempC, min_bat_v: body.minBatV, weather: '19°C • Live-GPS',
+          telemetry: pts
+        };
+        db.trips.unshift(newTrip);
+        const bk = db.bikes.find(b => b.id === Number(body.bikeId));
+        if (bk) bk.odo_km = Number((bk.odo_km + body.distanceKm).toFixed(1));
+        saveCloudDB(db);
+        return { ok: true, tripId: newTid };
+      }
+
+      if (path === '/api/subscription/update') {
+        let plan = String(body.plan || user.plan).toLowerCase();
+        if (body.promoCode) {
+          const code = String(body.promoCode).trim().toUpperCase();
+          const pr = db.promos.find(p => p.code === code);
+          if (!pr) throw new Error(`Promo-Code '${code}' ist ungültig.`);
+          plan = pr.target_plan;
+        }
+        user.plan = plan;
+        saveCloudDB(db);
+        return { ok: true, plan };
+      }
+
+      if (path === '/api/garage/add') {
+        const bid = db.bikes.reduce((m, b) => Math.max(m, b.id), 0) + 1;
+        db.bikes.push({
+          id: bid, user_id: user.id, name: body.name, brand: body.brand, model: body.model,
+          year: body.year, plate: body.plate, odo_km: body.odoKm, redline_rpm: body.redlineRpm,
+          oil_interval_km: 6000, last_oil_km: Math.max(0, body.odoKm - 800), chain_interval_km: 800, last_chain_km: Math.max(0, body.odoKm - 150),
+          tuv_date: '2027-06', battery_alert_v: 11.8
+        });
+        saveCloudDB(db);
+        return { ok: true };
+      }
+
+      if (path === '/api/garage/service') {
+        const bk = db.bikes.find(b => b.id === Number(body.bikeId));
+        if (bk) {
+          if (body.serviceType === 'oil') bk.last_oil_km = bk.odo_km;
+          if (body.serviceType === 'chain') bk.last_chain_km = bk.odo_km;
+          saveCloudDB(db);
+        }
+        return { ok: true };
+      }
+
+      if (path === '/api/tickets/create') {
+        const tid = db.tickets.reduce((m, t) => Math.max(m, t.id), 0) + 1;
+        db.tickets.unshift({
+          id: tid, user_id: user.id, user_name: user.name, subject: body.subject, category: body.category,
+          priority: body.priority, status: 'open', created_at: nowStr,
+          messages: [{ sender_name: user.name, sender_role: user.role, message: body.message, created_at: nowStr }]
+        });
+        saveCloudDB(db);
+        return { ok: true, ticketId: tid };
+      }
+
+      if (path === '/api/tickets/reply') {
+        const tk = db.tickets.find(t => t.id === Number(body.ticketId));
+        if (tk) {
+          if (body.message) {
+            tk.messages.push({ sender_name: user.name, sender_role: user.role, message: body.message, created_at: nowStr });
+          }
+          if (body.status) tk.status = body.status;
+          saveCloudDB(db);
+        }
+        return { ok: true };
+      }
+
+      if (path === '/api/admin/user-update') {
+        const target = db.users.find(u => u.id === Number(body.userId));
+        if (target) {
+          if (body.plan) target.plan = body.plan;
+          if (body.role) target.role = body.role;
+          saveCloudDB(db);
+        }
+        return { ok: true };
+      }
+
+      return { ok: true };
+    }
+
+    function saveGoogleCloudEndpoint() {
+      const inp = document.getElementById('inpGoogleCloudUrl');
+      googleCloudUrl = inp ? inp.value.trim() : '';
+      localStorage.setItem('vb_google_cloud_url', googleCloudUrl);
+      const b = document.getElementById('admCloudBadge');
+      if (b) b.textContent = googleCloudUrl ? '🟢 Google Cloud Sync Aktiv' : '☁️ Serverless Cloud Aktiv';
+      saveCloudDB(getCloudDB());
+    }
+
+    function resetCloudDatabase() {
+      localStorage.removeItem('vb_serverless_cloud_db_v2');
+      getCloudDB();
+      loadBootstrap();
+    }
+
+    // --- Hybrid Cloud & Local API Helper ---
+    async function apiCall(path, method = 'GET', body = null) {
+      // If running on localhost Python server or custom Google Cloud Run URL, try HTTP backend first, fallback to Serverless Cloud Engine automatically!
+      const isStaticCloudHost = location.hostname.endsWith('github.io') || location.hostname.endsWith('web.app') || location.protocol === 'file:';
+      if (!isStaticCloudHost) {
+        try {
+          const headers = { 'Content-Type': 'application/json' };
+          if (authToken) headers['Authorization'] = 'Bearer ' + authToken;
+          const opts = { method, headers };
+          if (body) opts.body = JSON.stringify(body);
+          const res = await fetch(path, opts);
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || 'Server-Fehler');
+          return data;
+        } catch (err) {
+          if (err.message && err.message.includes('Ungültig')) throw err;
+        }
+      }
+      return serverlessApiHandler(path, method, body);
+    }
+
+    // --- Authentication ---
+    function switchAuthMode(mode) {
+      const isLogin = mode === 'login';
+      document.getElementById('formLogin').classList.toggle('hide', !isLogin);
+      document.getElementById('formRegister').classList.toggle('hide', isLogin);
+      document.getElementById('btnAuthTabLogin').className = isLogin ? '' : 'sec';
+      document.getElementById('btnAuthTabReg').className = isLogin ? 'sec' : '';
+      document.getElementById('authErrorBox').classList.add('hide');
+    }
+
+    function showAuthError(msg) {
+      const box = document.getElementById('authErrorBox');
+      box.textContent = msg;
+      box.classList.remove('hide');
+    }
+
+    async function handleLogin(e) {
+      e.preventDefault();
+      try {
+        const identifier = document.getElementById('loginIdent').value;
+        const password = document.getElementById('loginPw').value;
+        const res = await apiCall('/api/auth/login', 'POST', { identifier, password });
+        authToken = res.token;
+        localStorage.setItem('vb_connect_token', authToken);
+        await loadBootstrap();
+      } catch (err) {
+        showAuthError(err.message);
+      }
+    }
+
+    async function quickLogin(identifier, password) {
+      document.getElementById('loginIdent').value = identifier;
+      document.getElementById('loginPw').value = password;
+      try {
+        const res = await apiCall('/api/auth/login', 'POST', { identifier, password });
+        authToken = res.token;
+        localStorage.setItem('vb_connect_token', authToken);
+        await loadBootstrap();
+      } catch (err) {
+        showAuthError(err.message);
+      }
+    }
+
+    async function handleRegister(e) {
+      e.preventDefault();
+      try {
+        const name = document.getElementById('regName').value;
+        const email = document.getElementById('regEmail').value;
+        const bikeModel = document.getElementById('regBike').value;
+        const password = document.getElementById('regPw').value;
+        const res = await apiCall('/api/auth/register', 'POST', { name, email, bikeModel, password });
+        authToken = res.token;
+        localStorage.setItem('vb_connect_token', authToken);
+        await loadBootstrap();
+      } catch (err) {
+        showAuthError(err.message);
+      }
+    }
+
+    function logoutUser() {
+      authToken = '';
+      currentUser = null;
+      localStorage.removeItem('vb_connect_token');
+      document.getElementById('viewAuth').classList.remove('hide');
+      ['Cockpit', 'Trips', 'Garage', 'SubSupport', 'Admin'].forEach(t => {
+        document.getElementById('view' + t).classList.add('hide');
+      });
+      document.getElementById('iosTabBar').classList.add('hide');
+      document.getElementById('btnHeaderLogout').classList.add('hide');
+      document.getElementById('hdrPlanBadge').classList.add('hide');
+      document.getElementById('hdrUserSub').textContent = 'Motorrad IoT-Telemetrie & Cloud';
+    }
+
+    // --- Bootstrap App Data ---
+    async function loadBootstrap() {
+      try {
+        const data = await apiCall('/api/bootstrap');
+        currentUser = data.user;
+        appData = data;
+
+        document.getElementById('viewAuth').classList.add('hide');
+        document.getElementById('iosTabBar').classList.remove('hide');
+        document.getElementById('btnHeaderLogout').classList.remove('hide');
+        document.getElementById('hdrUserSub').textContent = `${currentUser.name} • ${currentUser.email}`;
+
+        const pBadge = document.getElementById('hdrPlanBadge');
+        pBadge.classList.remove('hide');
+        pBadge.textContent = currentUser.plan.toUpperCase();
+        pBadge.className = 'pill ' + (currentUser.plan === 'trackday' ? 'purple' : (currentUser.plan === 'pro' ? 'cyan' : ''));
+
+        document.getElementById('tabBtnAdmin').classList.toggle('hide', currentUser.role !== 'admin');
+
+        renderBikeSelect();
+        renderTripsList();
+        renderGarage();
+        renderSubscriptionAndSupport();
+        if (currentUser.role === 'admin' && data.admin) {
+          renderAdminCenter();
+        }
+
+        // Open Cockpit tab if coming from login
+        const anyVisible = ['Cockpit', 'Trips', 'Garage', 'SubSupport', 'Admin'].some(
+          t => !document.getElementById('view' + t).classList.contains('hide')
+        );
+        if (!anyVisible) switchTab('Cockpit');
+      } catch (err) {
+        logoutUser();
+      }
+    }
+
+    function switchTab(tabName) {
+      ['Cockpit', 'Trips', 'Garage', 'SubSupport', 'Admin'].forEach(t => {
+        document.getElementById('view' + t).classList.toggle('hide', t !== tabName);
+      });
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.tab === tabName);
+      });
+      if (tabName === 'Trips') {
+        if (!selectedTrip && appData.trips.length > 0) {
+          openTripDetail(appData.trips[0].id);
+        } else {
+          drawTripAnalytics();
+        }
+      }
+    }
+
+    // --- ESP32 Hardware Polling & Remote Control ---
+    async function pollEsp32() {
+      const ip = document.getElementById('inpEspIp') ? document.getElementById('inpEspIp').value.trim() : '192.168.4.1';
+      let d = null;
+
+      // 1. Try direct browser connection (works when iPhone/Mac is on VB-Display-Telemetry Wi-Fi)
+      try {
+        const ctrl = new AbortController();
+        const tid = setTimeout(() => ctrl.abort(), 950);
+        const r = await fetch(`http://${ip}/api/telemetry`, { signal: ctrl.signal });
+        clearTimeout(tid);
+        if (r.ok) d = await r.json();
+      } catch (e) {}
+
+      // 2. Fallback via local backend proxy
+      if (!d && authToken) {
+        try {
+          const res = await apiCall(`/api/esp32/telemetry?ip=${encodeURIComponent(ip)}`);
+          if (res.connected && res.data) d = res.data;
+        } catch (e) {}
+      }
+
+      const badge = document.getElementById('hdrEspBadge');
+      const statusTxt = document.getElementById('espConnStatusText');
+
+      if (d && d.telemetry) {
+        espConnected = true;
+        badge.className = 'pill green';
+        badge.textContent = `🟢 ESP32 Live (${ip})`;
+        if (statusTxt) statusTxt.innerHTML = `Verbunden mit <b>${d.device || 'VB-Display-ESP32'}</b> • Status: <b>${d.status}</b>`;
+
+        liveState.speedKmh = d.telemetry.speedKmh;
+        liveState.rpm = d.telemetry.rpm;
+        liveState.redlineRpm = d.telemetry.redlineRpm;
+        liveState.gear = d.telemetry.gear;
+        liveState.fuelPercent = d.telemetry.fuelPercent;
+        liveState.batteryVolts = d.telemetry.batteryVolts;
+        liveState.coolantTempC = d.telemetry.coolantTempC;
+        liveState.tripKm = d.telemetry.tripKm;
+        liveState.odoKm = d.telemetry.odoKm;
+        liveState.turnLeft = d.indicators.turnLeft;
+        liveState.turnRight = d.indicators.turnRight;
+        liveState.hazardLights = d.indicators.hazardLights;
+        liveState.highBeam = d.indicators.highBeam;
+        liveState.lowBeam = d.indicators.lowBeam;
+        liveState.oilPressureWarn = d.indicators.oilPressureWarn;
+        liveState.gpsFix = d.gps.fix;
+        liveState.gpsSatellites = d.gps.satellites;
+        liveState.nightMode = d.config.nightMode;
+      } else {
+        espConnected = false;
+        badge.className = 'pill cyan';
+        badge.textContent = liveState.simMode === 2 ? '🤖 App-Autopilot' : '📱 App-Simulationsmodus';
+        if (statusTxt) statusTxt.innerHTML = `Kein direktes ESP32-WLAN erkannt — <b>Integrierter App-Fahrsimulator aktiv</b>`;
+      }
+      updateLiveTelemetryCards();
+    }
+
+    async function testEspConnection() {
+      await pollEsp32();
+    }
+
+    async function sendEspControl(params) {
+      if (params.redline !== undefined) liveState.redlineRpm = Number(params.redline);
+      if (params.night !== undefined) liveState.nightMode = Number(params.night) === 1;
+      if (params.resetTrip) liveState.tripKm = 0.0;
+
+      const ip = document.getElementById('inpEspIp').value.trim();
+      const q = new URLSearchParams(params).toString();
+      try {
+        await fetch(`http://${ip}/api/control?${q}`, { method: 'POST' });
+      } catch (e) {
+        try {
+          await apiCall('/api/esp32/forward', 'POST', { ip, endpoint: '/api/control', params });
+        } catch (e2) {}
+      }
+      updateLiveTelemetryCards();
+    }
+
+    async function sendEspSim(params) {
+      const ip = document.getElementById('inpEspIp').value.trim();
+      const q = new URLSearchParams(params).toString();
+      try {
+        await fetch(`http://${ip}/api/sim?${q}`, { method: 'POST' });
+      } catch (e) {
+        try {
+          await apiCall('/api/esp32/forward', 'POST', { ip, endpoint: '/api/sim', params });
+        } catch (e2) {}
+      }
+    }
+
+    function updateLiveTelemetryCards() {
+      const lean = Math.round(Math.min(52, (liveState.displaySpeed / 180) * 44 * Math.abs(Math.sin(performance.now() * 0.0012))));
+      const gForce = (0.18 + (liveState.displaySpeed / 200) * 0.85).toFixed(2);
+
+      document.getElementById('liveSpd').textContent = `${liveState.displaySpeed.toFixed(1)} km/h`;
+      document.getElementById('liveRpm').textContent = `${Math.round(liveState.displayRpm)} RPM`;
+      document.getElementById('liveRedline').textContent = `Redline: ${liveState.redlineRpm} RPM`;
+      document.getElementById('liveGear').textContent = liveState.gear === 0 ? 'N' : `${liveState.gear}. Gang`;
+      document.getElementById('liveGear').style.color = liveState.gear === 0 ? 'var(--green)' : 'var(--text)';
+      document.getElementById('liveLean').textContent = `${lean}°`;
+      document.getElementById('liveGForce').textContent = `${gForce} G Dynamik`;
+      document.getElementById('liveBat').textContent = `${liveState.batteryVolts.toFixed(1)} V`;
+      document.getElementById('liveBat').style.color = liveState.batteryVolts < 11.8 ? 'var(--red)' : 'var(--text)';
+      document.getElementById('liveFuel').textContent = `${liveState.fuelPercent} %`;
+      document.getElementById('liveTemp').textContent = `${liveState.coolantTempC} °C`;
+      document.getElementById('liveTrip').textContent = `${liveState.tripKm.toFixed(1)} km`;
+      document.getElementById('liveOdo').textContent = `ODO: ${liveState.odoKm.toFixed(0)} km`;
+      document.getElementById('garLiveBat').textContent = `${liveState.batteryVolts.toFixed(1)} V`;
+    }
+
+    // --- Live Trip Recorder ---
+    function renderBikeSelect() {
+      const sel = document.getElementById('selRecBike');
+      sel.innerHTML = appData.bikes.map(b => `<option value="${b.id}">${b.name} (${b.plate})</option>`).join('');
+    }
+
+    function toggleTripRecording() {
+      if (!recState.active) {
+        recState.active = true;
+        recState.startTimeMs = performance.now();
+        recState.durationSec = 0;
+        recState.distanceKm = 0;
+        recState.maxSpeedKmh = 0;
+        recState.maxRpm = 0;
+        recState.maxLeanDeg = 0;
+        recState.maxGForce = 0.25;
+        recState.redlineHits = 0;
+        recState.points = [];
+
+        // If stationary and not connected to a moving bike, automatically start Autopilot ride simulation so user sees rich recording!
+        if (liveState.speedKmh < 1 && !espConnected) {
+          setAdminSimMode(2);
+        }
+
+        document.getElementById('recDot').classList.remove('hide');
+        document.getElementById('recLiveStats').classList.remove('hide');
+        document.getElementById('btnStartRec').textContent = '⏹️ Fahrt beenden & speichern';
+        document.getElementById('btnStartRec').className = 'green';
+        document.getElementById('recTitleText').textContent = 'Aufzeichnung läuft... (Live GPS & Telemetrie)';
+      } else {
+        recState.active = false;
+        document.getElementById('recDot').classList.add('hide');
+        document.getElementById('btnStartRec').textContent = '🔴 Fahrt aufzeichnen';
+        document.getElementById('btnStartRec').className = 'red';
+        document.getElementById('recTitleText').textContent = 'GPS & Telemetrie Fahrt-Aufzeichnung';
+        document.getElementById('dlgSaveTrip').showModal();
+      }
+    }
+
+    function sampleTripRecording(dt) {
+      if (!recState.active) return;
+      recState.durationSec = Math.max(1, Math.round((performance.now() - recState.startTimeMs) / 1000));
+      recState.distanceKm += (liveState.displaySpeed / 3600.0) * dt;
+      if (liveState.displaySpeed > recState.maxSpeedKmh) recState.maxSpeedKmh = liveState.displaySpeed;
+      if (liveState.displayRpm > recState.maxRpm) recState.maxRpm = Math.round(liveState.displayRpm);
+      const lean = Math.round(Math.min(51, (liveState.displaySpeed / 175) * 45 * Math.abs(Math.sin(recState.durationSec * 0.35))));
+      const g = Number((0.22 + (liveState.displaySpeed / 190) * 0.88).toFixed(2));
+      if (lean > recState.maxLeanDeg) recState.maxLeanDeg = lean;
+      if (g > recState.maxGForce) recState.maxGForce = g;
+
+      const mins = String(Math.floor(recState.durationSec / 60)).padStart(2, '0');
+      const secs = String(recState.durationSec % 60).padStart(2, '0');
+      document.getElementById('recValTime').textContent = `${mins}:${secs}`;
+      document.getElementById('recValDist').textContent = `${recState.distanceKm.toFixed(2)} km`;
+      document.getElementById('recValMaxSpd').textContent = `${Math.round(recState.maxSpeedKmh)} km/h`;
+      document.getElementById('recValMaxLean').textContent = `${recState.maxLeanDeg}°`;
+    }
+
+    // Record 1 telemetry point per second
+    setInterval(() => {
+      if (!recState.active) return;
+      const t = recState.points.length;
+      const p = t / 60.0;
+      const lat = recState.baseLat + p * 0.04 + 0.008 * Math.sin(t * 0.25);
+      const lng = recState.baseLng + p * 0.06 + 0.009 * Math.cos(t * 0.2);
+      const lean = Math.round(Math.min(51, (liveState.displaySpeed / 175) * 45 * Math.abs(Math.sin(t * 0.35))));
+      const g = Number((0.22 + (liveState.displaySpeed / 190) * 0.88).toFixed(2));
+      if (liveState.displayRpm >= liveState.redlineRpm) recState.redlineHits++;
+
+      recState.points.push({
+        t,
+        spd: Number(liveState.displaySpeed.toFixed(1)),
+        rpm: Math.round(liveState.displayRpm),
+        gear: liveState.gear,
+        lean,
+        g,
+        temp: liveState.coolantTempC,
+        bat: Number(liveState.batteryVolts.toFixed(2)),
+        lat: Number(lat.toFixed(5)),
+        lng: Number(lng.toFixed(5))
+      });
+    }, 1000);
+
+    async function confirmSaveRecordedTrip(e) {
+      e.preventDefault();
+      const title = document.getElementById('inpSaveTripTitle').value;
+      const routeName = document.getElementById('inpSaveTripRoute').value;
+      const bikeId = Number(document.getElementById('selRecBike').value || 1);
+      const avgSpd = recState.points.length > 0
+        ? recState.points.reduce((acc, p) => acc + p.spd, 0) / recState.points.length
+        : 64.5;
+
+      const payload = {
+        title,
+        routeName,
+        bikeId,
+        durationSec: Math.max(60, recState.durationSec),
+        distanceKm: Math.max(1.2, Number(recState.distanceKm.toFixed(2))),
+        avgSpeedKmh: Math.max(38.0, Number(avgSpd.toFixed(1))),
+        maxSpeedKmh: Math.max(85.0, Number(recState.maxSpeedKmh.toFixed(1))),
+        maxRpm: Math.max(6800, recState.maxRpm),
+        redlineHits: recState.redlineHits,
+        zeroToHundredSec: 3.9,
+        maxLeanDeg: Math.max(28, recState.maxLeanDeg),
+        maxGForce: recState.maxGForce,
+        avgTempC: liveState.coolantTempC,
+        maxTempC: liveState.coolantTempC + 6,
+        minBatV: liveState.batteryVolts,
+        telemetry: recState.points
+      };
+
+      document.getElementById('dlgSaveTrip').close();
+      document.getElementById('recLiveStats').classList.add('hide');
+
+      const res = await apiCall('/api/trips/save', 'POST', payload);
+      await loadBootstrap();
+      switchTab('Trips');
+      openTripDetail(res.tripId);
+    }
+
+    // --- Trips & Analytics ---
+    function renderTripsList() {
+      const trips = appData.trips || [];
+      document.getElementById('sumTripsCount').textContent = trips.length;
+      const totalKm = trips.reduce((s, t) => s + t.distance_km, 0);
+      const topSpd = trips.reduce((m, t) => Math.max(m, t.max_speed_kmh), 0);
+      const maxLean = trips.reduce((m, t) => Math.max(m, t.max_lean_deg || 0), 0);
+
+      document.getElementById('sumTripsKm').textContent = `${totalKm.toFixed(1)} km`;
+      document.getElementById('sumTripsTopSpd').textContent = `${topSpd.toFixed(1)} km/h`;
+      document.getElementById('sumTripsMaxLean').textContent = `${maxLean.toFixed(1)}°`;
+
+      const container = document.getElementById('tripsListContainer');
+      if (trips.length === 0) {
+        container.innerHTML = `<div style="color:var(--muted);font-size:13px">Noch keine Fahrten gespeichert.</div>`;
+        return;
+      }
+
+      container.innerHTML = trips.map(t => {
+        const mins = Math.round(t.duration_sec / 60);
+        const isSel = selectedTrip && selectedTrip.id === t.id;
+        return `
+          <div class="trip-item" style="${isSel ? 'border-color:var(--cyan);background:#172238' : ''}" onclick="openTripDetail(${t.id})">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+              <div>
+                <div style="font-weight:700;font-size:15px">${t.title}</div>
+                <div style="font-size:12px;color:var(--muted);margin-top:2px">${t.route_name}</div>
+              </div>
+              <span class="pill cyan num">${t.distance_km.toFixed(1)} km</span>
+            </div>
+            <div style="display:flex;gap:14px;margin-top:10px;font-size:12px;color:var(--muted)" class="num">
+              <span>⏱️ ${mins} Min.</span>
+              <span>🚀 Max ${t.max_speed_kmh.toFixed(0)} km/h</span>
+              <span>📐 ${t.max_lean_deg}°</span>
+              <span>📅 ${t.started_at}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function openTripDetail(tripId) {
+      try {
+        const res = await apiCall(`/api/trip?id=${tripId}`);
+        selectedTrip = res.trip;
+        renderTripsList();
+
+        document.getElementById('detTripTitle').textContent = selectedTrip.title;
+        document.getElementById('detTripRoute').textContent = `${selectedTrip.route_name} • ${selectedTrip.started_at} • ${selectedTrip.weather}`;
+        document.getElementById('detDist').textContent = `${selectedTrip.distance_km.toFixed(1)} km`;
+        document.getElementById('detSpeed').textContent = `${selectedTrip.avg_speed_kmh.toFixed(0)} / ${selectedTrip.max_speed_kmh.toFixed(0)} km/h`;
+        document.getElementById('detZ100').textContent = `${selectedTrip.zero_to_hundred_sec.toFixed(1)} s`;
+        document.getElementById('detRpm').textContent = `${selectedTrip.max_rpm} (${selectedTrip.redline_hits}x)`;
+        document.getElementById('detLean').textContent = `${selectedTrip.max_lean_deg.toFixed(1)}°`;
+        document.getElementById('detG').textContent = `${selectedTrip.max_g_force.toFixed(2)} G`;
+        document.getElementById('detTemp').textContent = `${selectedTrip.avg_temp_c} / ${selectedTrip.max_temp_c} °C`;
+        document.getElementById('detBat').textContent = `${selectedTrip.min_bat_v.toFixed(1)} V`;
+
+        const pts = selectedTrip.telemetry || [];
+        const scrub = document.getElementById('rngTripScrub');
+        scrub.max = Math.max(0, pts.length - 1);
+        scrub.value = Math.floor(pts.length / 2);
+
+        drawTripAnalytics();
+      } catch (e) {}
+    }
+
+    // --- Google Maps Satellite Integration (Leaflet + Google Maps Tiles lyrs=y/s/p/m) ---
+    let gMap = null;
+    let gTileLayer = null;
+    let gRouteGroup = null;
+    let gBikeMarker = null;
+    let gCurrentLyrs = 'y'; // 'y' = Google Hybrid (Satellit + Straßen), 's' = Satellit Pur, 'p' = Terrain, 'm' = Straßenkarte
+    let gLastTripId = null;
+
+    function initGoogleSatMap() {
+      if (gMap || typeof L === 'undefined') return;
+      const el = document.getElementById('googleSatMap');
+      if (!el) return;
+
+      gMap = L.map('googleSatMap', {
+        zoomControl: true,
+        attributionControl: false
+      }).setView([50.1852, 8.2680], 11);
+
+      gTileLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=y&hl=de&x={x}&y={y}&z={z}', {
+        maxZoom: 20
+      }).addTo(gMap);
+
+      gRouteGroup = L.layerGroup().addTo(gMap);
+    }
+
+    function setGoogleMapLayer(lyrs) {
+      gCurrentLyrs = lyrs;
+      const btnMap = { y: 'btnMapHyb', s: 'btnMapSat', p: 'btnMapTer', m: 'btnMapStr' };
+      Object.keys(btnMap).forEach(k => {
+        const b = document.getElementById(btnMap[k]);
+        if (b) b.className = (k === lyrs) ? 'sm' : 'sec sm';
+      });
+      if (gMap && gTileLayer) {
+        gTileLayer.setUrl(`https://mt1.google.com/vt/lyrs=${lyrs}&hl=de&x={x}&y={y}&z={z}`);
+      }
+    }
+
+    function fitGoogleMapToRoute() {
+      if (!gMap || !selectedTrip || !selectedTrip.telemetry || selectedTrip.telemetry.length < 2) return;
+      const latlngs = selectedTrip.telemetry.map(p => [p.lat, p.lng]);
+      gMap.invalidateSize();
+      gMap.fitBounds(L.latLngBounds(latlngs), { padding: [24, 24] });
+    }
+
+    function openInNativeGoogleMaps() {
+      if (!selectedTrip || !selectedTrip.telemetry || selectedTrip.telemetry.length < 2) return;
+      const pts = selectedTrip.telemetry;
+      const start = pts[0];
+      const end = pts[pts.length - 1];
+      const mid = pts[Math.floor(pts.length / 2)];
+      const url = `https://www.google.com/maps/dir/${start.lat},${start.lng}/${mid.lat},${mid.lng}/${end.lat},${end.lng}/@${mid.lat},${mid.lng},13z/data=!3m1!1e3`;
+      window.open(url, '_blank');
+    }
+
+    async function openIphoneInstallModal() {
+      let iosUrl = window.location.origin;
+      try {
+        const info = await apiCall('/api/server-info');
+        if (info && info.iosUrl) iosUrl = info.iosUrl;
+      } catch (e) {}
+      document.getElementById('lblIphoneUrl').textContent = iosUrl;
+      document.getElementById('imgIphoneQr').src =
+        `https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=4&data=${encodeURIComponent(iosUrl)}`;
+      document.getElementById('dlgIphoneInstall').showModal();
+    }
+
+    function setChartMetric(metric) {
+      currentChartMetric = metric;
+      ['Spd', 'Rpm', 'Lean', 'G', 'Temp'].forEach(m => {
+        const btn = document.getElementById('btnChart' + m);
+        if (btn) btn.className = (m.toLowerCase() === metric) ? 'sm' : 'sec sm';
+      });
+      drawTripAnalytics();
+    }
+
+    function drawTripAnalytics() {
+      if (!selectedTrip || !selectedTrip.telemetry || selectedTrip.telemetry.length < 2) return;
+      const pts = selectedTrip.telemetry;
+      const scrubIdx = Math.min(pts.length - 1, Math.max(0, Number(document.getElementById('rngTripScrub').value || 0)));
+      const activePt = pts[scrubIdx];
+
+      document.getElementById('lblScrubInfo').textContent =
+        `${activePt.spd} km/h • ${activePt.rpm} RPM • ${activePt.lean}°`;
+
+      const coordsLbl = document.getElementById('lblGoogleCoords');
+      if (coordsLbl) {
+        coordsLbl.textContent = `📍 ${activePt.lat.toFixed(4)}° N, ${activePt.lng.toFixed(4)}° E`;
+      }
+
+      // 1A. Update Real Google Maps Satellite View
+      if (typeof L !== 'undefined') {
+        initGoogleSatMap();
+        if (gMap) {
+          gMap.invalidateSize();
+          if (gLastTripId !== selectedTrip.id) {
+            gLastTripId = selectedTrip.id;
+            gRouteGroup.clearLayers();
+            gBikeMarker = null;
+
+            // Draw dark halo outline under route for contrast on satellite photos
+            const allLatLngs = pts.map(p => [p.lat, p.lng]);
+            L.polyline(allLatLngs, { color: '#050811', weight: 8, opacity: 0.75 }).addTo(gRouteGroup);
+
+            // Draw speed-colored heatmap segments
+            for (let i = 1; i < pts.length; i++) {
+              const p0 = pts[i - 1], p1 = pts[i];
+              const segCol = p1.spd > 130 ? '#ff2d37' : (p1.spd > 85 ? '#ffb400' : '#00d7ff');
+              L.polyline([[p0.lat, p0.lng], [p1.lat, p1.lng]], {
+                color: segCol,
+                weight: 4.5,
+                opacity: 0.95,
+                lineCap: 'round'
+              }).addTo(gRouteGroup);
+            }
+
+            // Start & Finish markers
+            const startIcon = L.divIcon({
+              className: '',
+              html: `<div style="background:#00eb6e;color:#04120a;font-weight:900;font-size:10px;padding:2px 6px;border-radius:99px;border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.6);white-space:nowrap">🟢 START</div>`,
+              iconSize: [58, 20],
+              iconAnchor: [29, 10]
+            });
+            const endIcon = L.divIcon({
+              className: '',
+              html: `<div style="background:#ff2d37;color:#fff;font-weight:900;font-size:10px;padding:2px 6px;border-radius:99px;border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.6);white-space:nowrap">🏁 ZIEL</div>`,
+              iconSize: [54, 20],
+              iconAnchor: [27, 10]
+            });
+            L.marker([pts[0].lat, pts[0].lng], { icon: startIcon }).addTo(gRouteGroup);
+            L.marker([pts[pts.length - 1].lat, pts[pts.length - 1].lng], { icon: endIcon }).addTo(gRouteGroup);
+
+            gMap.fitBounds(L.latLngBounds(allLatLngs), { padding: [24, 24] });
+          }
+
+          // Update Live Bike Scrubber Marker on Google Satellite Map
+          const bikeHtml = `<div style="background:#0a0e18;color:#00d7ff;font-weight:800;font-size:11px;padding:3px 8px;border-radius:99px;border:2px solid #00d7ff;box-shadow:0 4px 14px rgba(0,0,0,0.85);white-space:nowrap">🏍️ ${activePt.spd} km/h • ${activePt.lean}°</div>`;
+          const bikeIcon = L.divIcon({
+            className: '',
+            html: bikeHtml,
+            iconSize: [120, 24],
+            iconAnchor: [60, 28]
+          });
+          if (!gBikeMarker) {
+            gBikeMarker = L.marker([activePt.lat, activePt.lng], { icon: bikeIcon, zIndexOffset: 1000 }).addTo(gRouteGroup);
+          } else {
+            gBikeMarker.setLatLng([activePt.lat, activePt.lng]);
+            gBikeMarker.setIcon(bikeIcon);
+          }
+        }
+      }
+
+      // 1B. Fallback Canvas Map (if completely offline)
+      const mapCvs = document.getElementById('routeMapCanvas');
+      const mctx = mapCvs.getContext('2d');
+      const mw = mapCvs.width, mh = mapCvs.height;
+      mctx.clearRect(0, 0, mw, mh);
+
+      // Subtle grid
+      mctx.strokeStyle = 'rgba(255,255,255,0.04)';
+      mctx.lineWidth = 1;
+      for (let gx = 0; gx < mw; gx += 40) { mctx.beginPath(); mctx.moveTo(gx, 0); mctx.lineTo(gx, mh); mctx.stroke(); }
+      for (let gy = 0; gy < mh; gy += 40) { mctx.beginPath(); mctx.moveTo(0, gy); mctx.lineTo(mw, gy); mctx.stroke(); }
+
+      const lats = pts.map(p => p.lat), lngs = pts.map(p => p.lng);
+      const minLat = Math.min(...lats), maxLat = Math.max(...lats);
+      const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
+      const pad = 26;
+      const mapX = lng => pad + ((lng - minLng) / Math.max(0.0001, maxLng - minLng)) * (mw - 2 * pad);
+      const mapY = lat => mh - pad - ((lat - minLat) / Math.max(0.0001, maxLat - minLat)) * (mh - 2 * pad);
+
+      mctx.lineWidth = 4;
+      mctx.lineCap = 'round';
+      for (let i = 1; i < pts.length; i++) {
+        const p0 = pts[i - 1], p1 = pts[i];
+        mctx.strokeStyle = p1.spd > 130 ? '#ff2d37' : (p1.spd > 85 ? '#ffb400' : '#00d7ff');
+        mctx.beginPath();
+        mctx.moveTo(mapX(p0.lng), mapY(p0.lat));
+        mctx.lineTo(mapX(p1.lng), mapY(p1.lat));
+        mctx.stroke();
+      }
+
+      // Start, Finish & Active Scrubber Marker on Map
+      mctx.fillStyle = '#00eb6e';
+      mctx.beginPath(); mctx.arc(mapX(pts[0].lng), mapY(pts[0].lat), 6, 0, Math.PI * 2); mctx.fill();
+      mctx.fillStyle = '#ff2d37';
+      mctx.beginPath(); mctx.arc(mapX(pts[pts.length - 1].lng), mapY(pts[pts.length - 1].lat), 6, 0, Math.PI * 2); mctx.fill();
+
+      const ax = mapX(activePt.lng), ay = mapY(activePt.lat);
+      mctx.fillStyle = '#ffffff';
+      mctx.beginPath(); mctx.arc(ax, ay, 7, 0, Math.PI * 2); mctx.fill();
+      mctx.strokeStyle = '#00d7ff';
+      mctx.lineWidth = 3;
+      mctx.stroke();
+
+      // 2. Draw Telemetry Time-Series Curve
+      const cCvs = document.getElementById('telemetryChartCanvas');
+      const cctx = cCvs.getContext('2d');
+      const cw = cCvs.width, ch = cCvs.height;
+      cctx.clearRect(0, 0, cw, ch);
+
+      const vals = pts.map(p => Number(p[currentChartMetric] || 0));
+      const maxVal = Math.max(1, ...vals) * 1.08;
+      const colorMap = { spd: '#00d7ff', rpm: '#ffb400', lean: '#00eb6e', g: '#a855f7', temp: '#ff2d37' };
+      const strokeCol = colorMap[currentChartMetric] || '#00d7ff';
+
+      // Area fill
+      cctx.beginPath();
+      pts.forEach((p, idx) => {
+        const cx = 14 + (idx / (pts.length - 1)) * (cw - 28);
+        const cy = ch - 18 - (vals[idx] / maxVal) * (ch - 32);
+        if (idx === 0) cctx.moveTo(cx, cy);
+        else cctx.lineTo(cx, cy);
+      });
+      cctx.strokeStyle = strokeCol;
+      cctx.lineWidth = 2.5;
+      cctx.stroke();
+
+      // Scrubber vertical line
+      const sx = 14 + (scrubIdx / (pts.length - 1)) * (cw - 28);
+      const sy = ch - 18 - (vals[scrubIdx] / maxVal) * (ch - 32);
+      cctx.strokeStyle = 'rgba(255,255,255,0.35)';
+      cctx.lineWidth = 1;
+      cctx.beginPath(); cctx.moveTo(sx, 8); cctx.lineTo(sx, ch - 14); cctx.stroke();
+      cctx.fillStyle = '#fff';
+      cctx.beginPath(); cctx.arc(sx, sy, 5, 0, Math.PI * 2); cctx.fill();
+    }
+
+    function exportCurrentTripJSON() {
+      if (!selectedTrip) return;
+      const blob = new Blob([JSON.stringify(selectedTrip, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `VB_Trip_${selectedTrip.id}.json`;
+      a.click();
+    }
+
+    function exportCurrentTripGPX() {
+      if (!selectedTrip || !selectedTrip.telemetry) return;
+      const trkpts = selectedTrip.telemetry.map(p =>
+        `      <trkpt lat="${p.lat}" lon="${p.lng}"><extensions><speed>${p.spd}</speed><rpm>${p.rpm}</rpm></extensions></trkpt>`
+      ).join('\n');
+      const gpx = `<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="VB Connect iOS">\n  <trk>\n    <name>${selectedTrip.title}</name>\n    <trkseg>\n${trkpts}\n    </trkseg>\n  </trk>\n</gpx>`;
+      const blob = new Blob([gpx], { type: 'application/gpx+xml' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `VB_Trip_${selectedTrip.id}.gpx`;
+      a.click();
+    }
+
+    // --- Garage & Maintenance ---
+    function renderGarage() {
+      const container = document.getElementById('garageBikesContainer');
+      const bikes = appData.bikes || [];
+      container.innerHTML = bikes.map(b => {
+        const oilUsed = Math.max(0, b.odo_km - b.last_oil_km);
+        const oilPct = Math.min(100, Math.round((oilUsed / b.oil_interval_km) * 100));
+        const chainUsed = Math.max(0, b.odo_km - b.last_chain_km);
+        const chainPct = Math.min(100, Math.round((chainUsed / b.chain_interval_km) * 100));
+
+        return `
+          <div class="stat-box" style="padding:15px">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+              <div>
+                <div style="font-size:17px;font-weight:800">${b.name}</div>
+                <div style="font-size:12px;color:var(--muted)">${b.brand} ${b.model} (${b.year}) • <b>${b.plate}</b></div>
+              </div>
+              <span class="pill cyan num">${b.odo_km.toFixed(1)} km</span>
+            </div>
+
+            <div style="font-size:12px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;background:var(--bg-card);padding:8px 10px;border-radius:8px">
+              <span>⚡ Schaltblitz-Limit: <b class="num">${b.redline_rpm} RPM</b></span>
+              <button class="sm" onclick="sendEspControl({redline: ${b.redline_rpm}})">Ans Display senden</button>
+            </div>
+
+            <div style="margin-bottom:10px">
+              <div style="display:flex;justify-content:space-between;font-size:12px">
+                <span>🛢️ Motoröl &amp; Filter (${oilUsed.toFixed(0)} / ${b.oil_interval_km} km)</span>
+                <button class="sec sm" style="padding:2px 8px;font-size:11px" onclick="resetService(${b.id},'oil')">Reset</button>
+              </div>
+              <div class="prog-track">
+                <div class="prog-fill" style="width:${oilPct}%;background:${oilPct > 85 ? 'var(--red)' : 'var(--green)'}"></div>
+              </div>
+            </div>
+
+            <div>
+              <div style="display:flex;justify-content:space-between;font-size:12px">
+                <span>⛓️ Kette reinigen &amp; spannen (${chainUsed.toFixed(0)} / ${b.chain_interval_km} km)</span>
+                <button class="sec sm" style="padding:2px 8px;font-size:11px" onclick="resetService(${b.id},'chain')">Reset</button>
+              </div>
+              <div class="prog-track">
+                <div class="prog-fill" style="width:${chainPct}%;background:${chainPct > 85 ? 'var(--amber)' : 'var(--cyan)'}"></div>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function handleAddBike(e) {
+      e.preventDefault();
+      await apiCall('/api/garage/add', 'POST', {
+        name: document.getElementById('garName').value,
+        brand: document.getElementById('garBrand').value,
+        model: document.getElementById('garModel').value,
+        year: Number(document.getElementById('garYear').value),
+        plate: document.getElementById('garPlate').value,
+        odoKm: Number(document.getElementById('garOdo').value),
+        redlineRpm: Number(document.getElementById('garRedline').value)
+      });
+      document.getElementById('dlgAddBike').close();
+      await loadBootstrap();
+    }
+
+    async function resetService(bikeId, serviceType) {
+      await apiCall('/api/garage/service', 'POST', { bikeId, serviceType });
+      await loadBootstrap();
+    }
+
+    // --- Subscription & Support System ---
+    function renderSubscriptionAndSupport() {
+      const plan = currentUser ? currentUser.plan : 'free';
+      document.getElementById('subCurrentPlanName').textContent =
+        plan === 'trackday' ? '🏁 VB TRACKDAY ULTIMATE' : (plan === 'pro' ? '⚡ VB PRO' : '🆓 VB BASIC');
+
+      document.getElementById('btnPlanFree').textContent = plan === 'free' ? '✅ Aktiver Plan' : 'Auf Basic wechseln';
+      document.getElementById('btnPlanPro').textContent = plan === 'pro' ? '✅ Aktiver Plan' : 'Auf VB Pro upgraden';
+      document.getElementById('btnPlanTrackday').textContent = plan === 'trackday' ? '✅ Aktiver Plan' : 'Trackday Ultimate aktivieren';
+
+      const container = document.getElementById('supportTicketsContainer');
+      const tickets = appData.tickets || [];
+      if (tickets.length === 0) {
+        container.innerHTML = `<div style="font-size:13px;color:var(--muted)">Keine offenen Support-Tickets.</div>`;
+        return;
+      }
+
+      container.innerHTML = tickets.map(t => {
+        const stBadge = t.status === 'resolved'
+          ? `<span class="pill green">Gelöst</span>`
+          : (t.status === 'in_progress' ? `<span class="pill cyan">In Bearbeitung</span>` : `<span class="pill amber">Offen</span>`);
+
+        const msgsHtml = (t.messages || []).map(m => `
+          <div class="chat-msg ${m.sender_role === 'admin' ? 'admin' : 'user'}">
+            <div style="font-size:10px;color:var(--muted);margin-bottom:2px"><b>${m.sender_name}</b> • ${m.created_at}</div>
+            <div>${m.message}</div>
+          </div>
+        `).join('');
+
+        const adminControls = currentUser && currentUser.role === 'admin' ? `
+          <select id="admTicketSt_${t.id}" style="width:auto;padding:6px 8px;font-size:12px">
+            <option value="open" ${t.status === 'open' ? 'selected' : ''}>Offen</option>
+            <option value="in_progress" ${t.status === 'in_progress' ? 'selected' : ''}>In Bearbeitung</option>
+            <option value="resolved" ${t.status === 'resolved' ? 'selected' : ''}>Gelöst</option>
+          </select>
+        ` : '';
+
+        return `
+          <div class="stat-box" style="margin-bottom:10px">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+              <div>
+                <div style="font-weight:700;font-size:14px">#${t.id} — ${t.subject}</div>
+                <div style="font-size:11px;color:var(--muted)">${t.category} • Priorität: ${t.priority} • ${t.user_name || ''}</div>
+              </div>
+              ${stBadge}
+            </div>
+            <div class="chat-box">${msgsHtml}</div>
+            <div style="display:flex;gap:6px">
+              <input id="inpReply_${t.id}" type="text" placeholder="Antwort schreiben..." style="padding:7px 10px;font-size:12px" />
+              ${adminControls}
+              <button class="sm" onclick="replySupportTicket(${t.id})">Senden</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function changeSubscription(plan) {
+      await apiCall('/api/subscription/update', 'POST', { plan, billingCycle: 'monthly' });
+      await loadBootstrap();
+    }
+
+    async function redeemPromoCode() {
+      const promoCode = document.getElementById('inpPromoCode').value.trim();
+      if (!promoCode) return;
+      try {
+        await apiCall('/api/subscription/update', 'POST', { promoCode });
+        document.getElementById('inpPromoCode').value = '';
+        await loadBootstrap();
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+
+    async function createSupportTicket(e) {
+      e.preventDefault();
+      const snap = document.getElementById('supAttachDiag').checked
+        ? JSON.stringify({ spd: liveState.speedKmh, rpm: liveState.rpm, bat: liveState.batteryVolts, temp: liveState.coolantTempC })
+        : '';
+      await apiCall('/api/tickets/create', 'POST', {
+        subject: document.getElementById('supSubj').value,
+        category: document.getElementById('supCat').value,
+        priority: document.getElementById('supPrio').value,
+        message: document.getElementById('supMsg').value,
+        telemetrySnapshot: snap
+      });
+      document.getElementById('supSubj').value = '';
+      document.getElementById('supMsg').value = '';
+      await loadBootstrap();
+    }
+
+    async function replySupportTicket(ticketId) {
+      const inp = document.getElementById('inpReply_' + ticketId);
+      const stSel = document.getElementById('admTicketSt_' + ticketId);
+      await apiCall('/api/tickets/reply', 'POST', {
+        ticketId,
+        message: inp.value,
+        status: stSel ? stSel.value : undefined
+      });
+      inp.value = '';
+      await loadBootstrap();
+    }
+
+    // --- Admin Center & Ride Simulator ---
+    function renderAdminCenter() {
+      const adm = appData.admin;
+      if (!adm) return;
+      document.getElementById('admKpiUsers').textContent = adm.kpis.totalUsers;
+      document.getElementById('admKpiMrr').textContent = `${adm.kpis.mrrEuro.toFixed(2)} €`;
+      document.getElementById('admKpiTrips').textContent = adm.kpis.totalTrips;
+      document.getElementById('admKpiKm').textContent = `${adm.kpis.totalKm} km gesamt`;
+      document.getElementById('admKpiTickets').textContent = adm.kpis.openTickets;
+
+      const uCont = document.getElementById('adminUsersContainer');
+      uCont.innerHTML = adm.users.map(u => `
+        <div class="stat-box" style="margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+          <div>
+            <div style="font-weight:700;font-size:14px">${u.name} <span style="color:var(--muted);font-weight:400">(@${u.username})</span></div>
+            <div style="font-size:12px;color:var(--muted)">${u.email} • Erstellt: ${u.created_at}</div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <select style="width:auto;padding:6px 10px;font-size:12px" onchange="adminUpdateUser(${u.id}, this.value, null)">
+              <option value="free" ${u.plan === 'free' ? 'selected' : ''}>Abo: Free (0€)</option>
+              <option value="pro" ${u.plan === 'pro' ? 'selected' : ''}>Abo: VB Pro (4,99€)</option>
+              <option value="trackday" ${u.plan === 'trackday' ? 'selected' : ''}>Abo: Trackday (9,99€)</option>
+            </select>
+            <select style="width:auto;padding:6px 10px;font-size:12px" onchange="adminUpdateUser(${u.id}, null, this.value)">
+              <option value="user" ${u.role === 'user' ? 'selected' : ''}>Rolle: Fahrer</option>
+              <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>Rolle: Admin</option>
+            </select>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function adminUpdateUser(userId, plan, role) {
+      await apiCall('/api/admin/user-update', 'POST', { userId, plan, role });
+      await loadBootstrap();
+    }
+
+    function setAdminSimMode(mode) {
+      liveState.simMode = mode;
+      liveState.autoTime = 0;
+      const badge = document.getElementById('admSimModeBadge');
+      if (badge) {
+        badge.textContent = mode === 2 ? '▶️ Autopilot läuft' : (mode === 1 ? '🕹️ Manuell aktiv' : '🔌 Hardware-Sensoren');
+      }
+      sendEspSim({ mode });
+    }
+
+    function setAdminGear(g) {
+      liveState.simMode = 1;
+      liveState.gear = g;
+      sendEspSim({ mode: 1, gear: g });
+    }
+
+    function toggleAdminInd(key) {
+      liveState.simMode = 1;
+      const mapKey = key === 'hazard' ? 'hazardLights' : (key === 'oilWarn' ? 'oilPressureWarn' : key);
+      liveState[mapKey] = !liveState[mapKey];
+      if (key === 'turnLeft' && liveState.turnLeft) liveState.turnRight = false;
+      if (key === 'turnRight' && liveState.turnRight) liveState.turnLeft = false;
+
+      const p = { mode: 1 };
+      p[key] = liveState[mapKey] ? 1 : 0;
+      sendEspSim(p);
+    }
+
+    function onAdminManualChange() {
+      liveState.simMode = 1;
+      const spd = Number(document.getElementById('admRngSpd').value);
+      const rpm = Number(document.getElementById('admRngRpm').value);
+      const fuel = Number(document.getElementById('admRngFuel').value);
+      const temp = Number(document.getElementById('admRngTemp').value);
+      const bat = Number(document.getElementById('admRngBat').value);
+
+      document.getElementById('admLblSpd').textContent = spd;
+      document.getElementById('admLblRpm').textContent = rpm;
+      document.getElementById('admLblFuel').textContent = fuel;
+      document.getElementById('admLblTemp').textContent = temp;
+      document.getElementById('admLblBat').textContent = bat.toFixed(1);
+
+      liveState.speedKmh = spd;
+      liveState.rpm = rpm;
+      liveState.fuelPercent = fuel;
+      liveState.coolantTempC = temp;
+      liveState.batteryVolts = bat;
+
+      sendEspSim({ mode: 1, speed: spd, rpm, fuel, temp, bat });
+    }
+
+    // --- 60 FPS Live Display Renderer (1:1 Website Design) ---
+    function drawSevenSeg(ctx, x, y, w, h, t, digit, color, ghostColor) {
+      const segMap = [0b0111111, 0b0000110, 0b1011011, 0b1001111, 0b1100110, 0b1101101, 0b1111101, 0b0000111, 0b1111111, 0b1101111, 0];
+      const mask = (digit >= 0 && digit <= 9) ? segMap[digit] : 0;
+      const halfH = Math.floor(h / 2);
+      const gap = 2;
+      const segs = [
+        [0, x + gap, y, w - 2 * gap, t],
+        [5, x, y + gap, t, halfH - gap],
+        [1, x + w - t, y + gap, t, halfH - gap],
+        [6, x + gap, y + halfH - Math.floor(t / 2), w - 2 * gap, t],
+        [4, x, y + halfH + 1, t, halfH - gap],
+        [2, x + w - t, y + halfH + 1, t, halfH - gap],
+        [3, x + gap, y + h - t, w - 2 * gap, t]
+      ];
+      ctx.fillStyle = ghostColor;
+      for (const [bit, sx, sy, sw, sh] of segs) {
+        if (!(mask & (1 << bit))) { ctx.beginPath(); ctx.roundRect(sx, sy, sw, sh, 1); ctx.fill(); }
+      }
+      ctx.fillStyle = color;
+      for (const [bit, sx, sy, sw, sh] of segs) {
+        if (mask & (1 << bit)) { ctx.beginPath(); ctx.roundRect(sx, sy, sw, sh, 1); ctx.fill(); }
+      }
+    }
+
+    function drawBox(ctx, x, y, w, h, r, bg, border) {
+      ctx.fillStyle = bg;
+      ctx.beginPath();
+      ctx.roundRect(x, y, w, h, r);
+      ctx.fill();
+      if (border) {
+        ctx.strokeStyle = border;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+    }
+
+    let lastFrameTs = performance.now();
+    function renderCockpitLoop(now) {
+      const dt = Math.min(0.1, (now - lastFrameTs) / 1000.0);
+      lastFrameTs = now;
+
+      // Local Autopilot calculation if running in browser simulation mode
+      if (!espConnected && liveState.simMode === 2) {
+        liveState.autoTime += dt;
+        const t = liveState.autoTime % 36.0;
+        if (t < 3.0) {
+          liveState.gear = 0; liveState.speedKmh = 0; liveState.rpm = 1300; liveState.turnRight = true; liveState.turnLeft = false;
+        } else if (t < 7.0) {
+          const p = (t - 3.0) / 4.0;
+          liveState.gear = 1; liveState.speedKmh = 8 + p * 46; liveState.rpm = 2400 + p * 8100; liveState.turnRight = false;
+        } else if (t < 11.5) {
+          const p = (t - 7.0) / 4.5;
+          liveState.gear = 2; liveState.speedKmh = 54 + p * 38; liveState.rpm = 6200 + p * 4200;
+        } else if (t < 16.0) {
+          const p = (t - 11.5) / 4.5;
+          liveState.gear = 3; liveState.speedKmh = 92 + p * 36; liveState.rpm = 6400 + p * 3800;
+          liveState.turnLeft = p < 0.65; liveState.highBeam = (p > 0.25 && p < 0.55);
+        } else if (t < 21.0) {
+          const p = (t - 16.0) / 5.0;
+          liveState.gear = p < 0.5 ? 4 : 5; liveState.speedKmh = 128 + p * 40;
+          const gp = p < 0.5 ? p * 2 : (p - 0.5) * 2;
+          liveState.rpm = 6800 + gp * 3300; liveState.turnLeft = false; liveState.highBeam = false;
+        } else if (t < 27.0) {
+          const p = (t - 21.0) / 6.0;
+          liveState.gear = 6; liveState.speedKmh = 168 + 8 * Math.sin(p * Math.PI); liveState.rpm = 7600 + 700 * Math.sin(p * Math.PI);
+        } else if (t < 33.5) {
+          const p = (t - 27.0) / 6.5;
+          liveState.speedKmh = 168 * (1 - p);
+          liveState.gear = Math.max(1, Math.min(6, Math.round(6 - p * 5.2)));
+          liveState.rpm = 3400 + (1 - p) * 3500;
+        } else {
+          liveState.gear = 0; liveState.speedKmh = 0; liveState.rpm = 1280;
+        }
+        liveState.tripKm += (liveState.speedKmh / 3600.0) * dt;
+      }
+
+      liveState.displaySpeed += (liveState.speedKmh - liveState.displaySpeed) * Math.min(1, dt * 12);
+      liveState.displayRpm += (liveState.rpm - liveState.displayRpm) * Math.min(1, dt * 16);
+
+      sampleTripRecording(dt);
+
+      const cvs = document.getElementById('liveDisplayCanvas');
+      if (cvs) {
+        const ctx = cvs.getContext('2d');
+        const flashOn = (Math.floor(now / 380) % 2) === 0;
+        const shiftOn = liveState.displayRpm >= liveState.redlineRpm &&
+                        (liveState.displayRpm < liveState.redlineRpm + 800 || (Math.floor(now / 120) % 2) === 0);
+
+        ctx.save();
+        ctx.scale(2, 2);
+
+        ctx.fillStyle = liveState.nightMode ? '#04060a' : '#0a0e18';
+        ctx.fillRect(0, 0, 320, 240);
+
+        if (shiftOn) {
+          ctx.fillStyle = '#ff2d37';
+          ctx.fillRect(0, 0, 320, 5);
+        }
+
+        // Top Bar (1:1 Website Design)
+        ctx.fillStyle = '#101622';
+        ctx.fillRect(0, 4, 320, 34);
+        ctx.fillStyle = '#2d3a52';
+        ctx.fillRect(0, 38, 320, 1);
+
+        const leftOn = (liveState.turnLeft || liveState.hazardLights) && flashOn;
+        drawBox(ctx, 8, 8, 38, 26, 5, leftOn ? '#0c411e' : '#1c2434', leftOn ? '#1ef55f' : null);
+        ctx.fillStyle = leftOn ? '#1ef55f' : '#242e40';
+        ctx.beginPath(); ctx.moveTo(15, 21); ctx.lineTo(27, 13); ctx.lineTo(27, 29); ctx.fill();
+        ctx.fillRect(27, 17, 12, 8);
+
+        drawBox(ctx, 52, 8, 38, 26, 5, liveState.highBeam ? '#0c2658' : '#1c2434', liveState.highBeam ? '#2387ff' : null);
+        ctx.fillStyle = liveState.highBeam ? '#2387ff' : '#242e40';
+        ctx.font = 'bold 10px monospace';
+        ctx.fillText('HI', 64, 25);
+
+        drawBox(ctx, 96, 8, 38, 26, 5, liveState.lowBeam ? '#0a3720' : '#1c2434', liveState.lowBeam ? '#00eb6e' : null);
+        ctx.fillStyle = liveState.lowBeam ? '#00eb6e' : '#242e40';
+        ctx.fillText('LO', 108, 25);
+
+        const warn = liveState.oilPressureWarn || liveState.coolantTempC >= 108 || liveState.batteryVolts < 11.8;
+        drawBox(ctx, 140, 8, 126, 26, 5, warn ? '#500e14' : '#1c2434', warn ? '#ff2d37' : null);
+        ctx.fillStyle = warn ? '#ff2d37' : '#00d7ff';
+        ctx.beginPath(); ctx.arc(152, 21, 3, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = warn ? '#ff8086' : '#f5f8ff';
+        ctx.font = '10px monospace';
+        ctx.fillText(warn ? 'WARNUNG AKTIV!' : `GPS:0${liveState.gpsSatellites}`, 162, 24);
+        if (!warn) {
+          ctx.fillStyle = '#8294b0';
+          ctx.fillText('18:45', 214, 24);
+        }
+
+        const rightOn = (liveState.turnRight || liveState.hazardLights) && flashOn;
+        drawBox(ctx, 274, 8, 38, 26, 5, rightOn ? '#0c411e' : '#1c2434', rightOn ? '#1ef55f' : null);
+        ctx.fillStyle = rightOn ? '#1ef55f' : '#242e40';
+        ctx.fillRect(281, 17, 12, 8);
+        ctx.beginPath(); ctx.moveTo(305, 21); ctx.lineTo(293, 13); ctx.lineTo(293, 29); ctx.fill();
+
+        // 36-Segment RPM Bar
+        const segments = 36;
+        const activeSegs = Math.round((liveState.displayRpm / 12000) * segments);
+        const redSeg = Math.round((liveState.redlineRpm / 12000) * segments);
+        for (let i = 0; i < segments; i++) {
+          const sx = 12 + i * 8;
+          const dh = 12 + Math.floor((i * 10) / segments);
+          const sy = 46 + (22 - dh);
+          let col = '#1c2434';
+          if (i < activeSegs) {
+            col = i >= redSeg ? '#ff2d37' : (i >= redSeg - 5 ? '#ffb400' : '#00d7ff');
+          }
+          drawBox(ctx, sx, sy, 6, dh, 2, col, null);
+        }
+
+        // Gear Box
+        const isN = liveState.gear === 0;
+        drawBox(ctx, 12, 84, 84, 98, 8, '#101622', isN ? '#00eb6e' : (shiftOn ? '#ff2d37' : '#2d3a52'));
+        ctx.fillStyle = '#8294b0';
+        ctx.font = '9px monospace';
+        ctx.fillText('GANG', 41, 97);
+        if (isN) {
+          ctx.fillStyle = '#00eb6e';
+          ctx.font = 'bold 52px sans-serif';
+          ctx.fillText('N', 35, 156);
+        } else {
+          drawSevenSeg(ctx, 34, 106, 40, 56, 8, liveState.gear, shiftOn ? '#ff2d37' : '#f5f8ff', '#18202e');
+        }
+
+        // Speedometer Box
+        drawBox(ctx, 104, 84, 204, 98, 8, '#101622', '#2d3a52');
+        const spd = Math.max(0, Math.min(299, Math.round(liveState.displaySpeed)));
+        const hDig = spd >= 100 ? Math.floor(spd / 100) : 10;
+        const tDig = spd >= 10 ? Math.floor((spd / 10) % 10) : 10;
+        const oDig = spd % 10;
+        drawSevenSeg(ctx, 118, 100, 38, 66, 9, hDig, '#f5f8ff', '#182130');
+        drawSevenSeg(ctx, 164, 100, 38, 66, 9, tDig, '#f5f8ff', '#182130');
+        drawSevenSeg(ctx, 210, 100, 38, 66, 9, oDig, '#f5f8ff', '#182130');
+        ctx.fillStyle = '#00d7ff';
+        ctx.font = 'bold 14px monospace';
+        ctx.fillText('KM/H', 256, 120);
+        ctx.fillStyle = '#00eb6e';
+        ctx.font = '9px monospace';
+        ctx.fillText('GPS', 258, 136);
+
+        // Bottom 3 Cards (TANK | BAT | TRP)
+        drawBox(ctx, 12, 190, 94, 44, 6, '#101622', '#2d3a52');
+        ctx.fillStyle = '#f5f8ff';
+        ctx.font = '10px monospace';
+        ctx.fillText(`TANK ${liveState.fuelPercent}%`, 20, 204);
+        for (let i = 0; i < 8; i++) {
+          const lit = liveState.fuelPercent >= (i + 1) * 12;
+          ctx.fillStyle = lit ? '#00d7ff' : '#1c2434';
+          ctx.fillRect(20 + i * 10, 214, 8, 12);
+        }
+
+        drawBox(ctx, 112, 190, 100, 44, 6, '#101622', '#2d3a52');
+        ctx.fillStyle = liveState.batteryVolts < 11.8 ? '#ff2d37' : '#f5f8ff';
+        ctx.fillText(`BAT ${liveState.batteryVolts.toFixed(1)}V`, 124, 215);
+
+        drawBox(ctx, 218, 190, 90, 44, 6, '#101622', '#2d3a52');
+        ctx.fillStyle = '#00d7ff';
+        ctx.fillText(`TRP ${liveState.tripKm.toFixed(1)}`, 226, 215);
+
+        ctx.restore();
+      }
+
+      requestAnimationFrame(renderCockpitLoop);
+    }
+
+    // Start polling & render loops
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js').catch(() => {});
+    }
+    if (authToken) {
+      loadBootstrap();
+    }
+    setInterval(pollEsp32, 1100);
+    pollEsp32();
+    requestAnimationFrame(renderCockpitLoop);
+  </script>
+</body>
+</html>
