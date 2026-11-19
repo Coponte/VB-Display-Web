@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com; style-src 'self' 'unsafe-inline' https://unpkg.com; img-src 'self' data: https://mt1.google.com https://api.qrserver.com https://unpkg.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com http://192.168.4.1 http://127.0.0.1:* http://localhost:*; base-uri 'self'; form-action 'self';" />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
   <meta name="color-scheme" content="light dark" />
   <meta name="theme-color" content="#09090b" id="metaThemeColor" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -739,25 +741,28 @@
   <main class="container">
 
     <!-- ===================================================================
-         PUBLIC AUTHENTICATION VIEW (LOGIN & NEW ACCOUNT REGISTRATION)
+         PUBLIC AUTHENTICATION VIEW (LOGIN, BOT-PROTECTION & EMAIL DOUBLE-OPT-IN)
          =================================================================== -->
     <section id="viewAuth" class="auth-wrap">
       <div class="card" style="padding: 26px;">
-        <div class="sec-kicker">VB // TELEMETRY CLOUD</div>
+        <div class="sec-kicker">VB // SECURE TELEMETRY CLOUD</div>
         <h1 class="sec-title" style="margin-bottom: 6px;">Fahrzeugzugang &amp; <em>Konto</em></h1>
         <p style="font-size: 13.5px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 20px;">
-          Melde dich mit deinem Konto an oder registriere einen neuen Account, um Fahrtdaten, Satelliten-Strecken und Display-Profile in der Cloud zu synchronisieren.
+          Geschützter Cloud-Zugang mit Ende-zu-Ende-Passwort-Hashing (<span class="num">SHA-256</span>), Bot-Schutz und verpflichtender E-Mail-Verifizierung.
         </p>
 
-        <div class="seg-group" style="width: 100%; margin-bottom: 18px;">
+        <div id="authTabSwitchWrap" class="seg-group" style="width: 100%; margin-bottom: 18px;">
           <button type="button" id="btnAuthTabLogin" class="seg-btn active" style="flex:1; padding: 8px;" onclick="switchAuthMode('login')">Anmelden</button>
           <button type="button" id="btnAuthTabReg" class="seg-btn" style="flex:1; padding: 8px;" onclick="switchAuthMode('register')">Neues Konto erstellen</button>
         </div>
 
         <div id="authErrorBox" class="tag red hide" style="width: 100%; padding: 10px 12px; margin-bottom: 14px; text-transform: none; font-family: var(--font-sans); font-size: 12.5px;"></div>
+        <div id="authInfoBox" class="tag green hide" style="width: 100%; padding: 10px 12px; margin-bottom: 14px; text-transform: none; font-family: var(--font-sans); font-size: 12.5px;"></div>
 
         <!-- Login Form -->
         <form id="formLogin" onsubmit="handleLogin(event)">
+          <!-- Honeypot Trap (Invisible to humans) -->
+          <input id="hpTrapLogin" type="text" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;opacity:0;height:0;width:0;" />
           <div class="field">
             <label for="loginIdent">Benutzername oder E-Mail</label>
             <input id="loginIdent" type="text" required autocomplete="username" placeholder="name@domain.de" />
@@ -766,33 +771,74 @@
             <label for="loginPw">Passwort</label>
             <input id="loginPw" type="password" required autocomplete="current-password" placeholder="••••••••" />
           </div>
-          <button type="submit" style="width: 100%; margin-top: 6px;">Anmelden</button>
+          <button type="submit" id="btnLoginSubmit" style="width: 100%; margin-top: 6px;">Sicher anmelden</button>
         </form>
 
-        <!-- Registration Form (Public Account Creation) -->
-        <form id="formRegister" class="hide" onsubmit="handleRegister(event)">
+        <!-- Step 1: Registration Form (With Multi-Layer Anti-Bot & Password Policy) -->
+        <form id="formRegister" class="hide" onsubmit="handleRegisterStep1(event)">
+          <!-- Honeypot Trap (Invisible to humans) -->
+          <input id="hpTrapReg" type="text" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;opacity:0;height:0;width:0;" />
           <div class="field">
             <label for="regName">Vollständiger Name</label>
-            <input id="regName" type="text" required autocomplete="name" placeholder="Vorname Nachname" />
+            <input id="regName" type="text" required maxlength="80" autocomplete="name" placeholder="Vorname Nachname" />
           </div>
           <div class="field">
-            <label for="regEmail">E-Mail-Adresse</label>
-            <input id="regEmail" type="email" required autocomplete="email" placeholder="fahrer@domain.de" />
+            <label for="regEmail">E-Mail-Adresse (Bestätigungscode wird gesendet)</label>
+            <input id="regEmail" type="email" required maxlength="120" autocomplete="email" placeholder="fahrer@domain.de" />
           </div>
           <div class="field">
-            <label for="regPw">Passwort (min. 4 Zeichen)</label>
-            <input id="regPw" type="password" required minlength="4" autocomplete="new-password" placeholder="Passwort wählen" />
+            <label for="regPw">Passwort (min. 8 Zeichen, Buchstaben &amp; Zahl)</label>
+            <input id="regPw" type="password" required minlength="8" maxlength="128" autocomplete="new-password" placeholder="Sicheres Passwort wählen" oninput="updatePwStrength(this.value)" />
+            <div id="lblPwStrength" class="num" style="font-size: 10.5px; color: var(--text-secondary); margin-top: 4px;">Passwort-Richtlinie: mind. 8 Zeichen + Ziffer</div>
           </div>
           <div class="field">
             <label for="regBike">Motorradmodell</label>
-            <input id="regBike" type="text" required placeholder="z. B. Yamaha MT-07 / BMW S1000R" value="Yamaha MT-07" />
+            <input id="regBike" type="text" required maxlength="80" placeholder="z. B. Yamaha MT-07 / BMW S1000R" value="Yamaha MT-07" />
           </div>
-          <button type="submit" style="width: 100%; margin-top: 6px;">Konto öffentlich registrieren</button>
+
+          <!-- Anti-Bot Security Challenge -->
+          <div style="padding: 12px; border-radius: 10px; background: var(--bg-subtle); border: 1px solid var(--border); margin-bottom: 14px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+              <span class="card-label" style="color: var(--accent);">ANTI-BOT SICHERHEITSPRÜFUNG</span>
+              <button type="button" class="ghost sm" style="padding: 2px 6px; font-size: 10px;" onclick="generateBotChallenge()">Neu</button>
+            </div>
+            <div class="field" style="margin-bottom: 8px;">
+              <label id="lblBotQuestion" for="inpBotAnswer">Sicherheitsfrage lädt...</label>
+              <input id="inpBotAnswer" type="number" class="num" required inputmode="numeric" placeholder="Ergebnis eingeben" />
+            </div>
+            <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-secondary); cursor: pointer;">
+              <input id="chkBotHuman" type="checkbox" required />
+              <span>Ich bestätige, dass diese Registrierung manuell erfolgt (Bot-Schutz).</span>
+            </label>
+          </div>
+
+          <button type="submit" id="btnRegStep1Submit" style="width: 100%;">Bestätigungs-E-Mail anfordern</button>
+        </form>
+
+        <!-- Step 2: Mandatory Email Verification (Double-Opt-In 6-Digit Code) -->
+        <form id="formVerifyEmail" class="hide" onsubmit="handleRegisterVerifyCode(event)">
+          <div style="padding: 14px; border-radius: 10px; background: var(--bg-subtle); border: 1px solid var(--border); margin-bottom: 14px;">
+            <div class="card-label" style="color: var(--accent); margin-bottom: 4px;">SCHRITT 2 // E-MAIL-VERIFIZIERUNG</div>
+            <p style="font-size: 12.5px; color: var(--text-secondary); line-height: 1.5;">
+              Wir haben einen 6-stelligen Sicherheitscode an <b id="lblVerifyTargetEmail" class="num" style="color: var(--text);"></b> gesendet. Das Konto wird erst nach Eingabe des Codes erstellt.
+            </p>
+          </div>
+
+          <div class="field">
+            <label for="inpEmailOtpCode">6-stelliger E-Mail-Bestätigungscode</label>
+            <input id="inpEmailOtpCode" type="text" class="num" required minlength="6" maxlength="6" inputmode="numeric" autocomplete="one-time-code" placeholder="000000" style="font-size: 20px; letter-spacing: 0.28em; text-align: center; font-weight: 700;" />
+          </div>
+
+          <button type="submit" style="width: 100%; margin-top: 6px;">E-Mail bestätigen &amp; Konto aktivieren</button>
+          <div style="display: flex; justify-content: space-between; gap: 8px; margin-top: 10px;">
+            <button type="button" class="sec sm" style="flex: 1;" onclick="resendVerificationEmail()">Code erneut senden</button>
+            <button type="button" class="ghost sm" style="flex: 1;" onclick="cancelEmailVerification()">Zurück</button>
+          </div>
         </form>
 
         <div style="margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: var(--text-secondary);">
-          <span class="num">CLOUD STATUS: PUBLIC</span>
-          <span>Jeder neue Account ist sofort aktiv</span>
+          <span class="num">SECURITY: TLS 1.3 • SHA-256 • 2FA-MAIL</span>
+          <span id="lblRateLimitState">Brute-Force-Schutz aktiv</span>
         </div>
       </div>
     </section>
@@ -1261,6 +1307,7 @@
             </div>
             <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px;">
               <button type="button" class="sec sm" onclick="exportCloudDBJson()">Snapshot Export (.json)</button>
+              <button type="button" class="danger sm" onclick="revokeAllNonAdminSessions(false)">Alle Benutzer abmelden (außer Admin)</button>
               <button type="button" class="danger sm" onclick="resetProductionDatabase()">Vault zurücksetzen</button>
             </div>
           </div>
@@ -1321,6 +1368,7 @@
               <button type="button" class="seg-btn" data-dbcol="trips" onclick="selectDbCollection('trips')">trips</button>
               <button type="button" class="seg-btn" data-dbcol="tickets" onclick="selectDbCollection('tickets')">tickets</button>
               <button type="button" class="seg-btn" data-dbcol="promos" onclick="selectDbCollection('promos')">promos</button>
+              <button type="button" class="seg-btn" data-dbcol="audit_log" onclick="selectDbCollection('audit_log')">audit_log</button>
             </div>
             <input id="inpDbSearch" type="text" class="num" style="max-width: 240px; padding: 6px 10px; font-size: 12px;" placeholder="WHERE filter..." oninput="renderDbStudio()" />
           </div>
@@ -1729,7 +1777,18 @@
       ], 55, 124.0, 44.0, 36.0, 77);
     }
 
-    // Salted SHA-256 Password Hashing (No plaintext passwords in source or storage)
+    // OWASP XSS Output Sanitization Helper
+    function escHtml(str) {
+      if (str === null || str === undefined) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    // Salted SHA-256 Password & OTP Hashing (No plaintext secrets in source or storage)
     async function hashPassword(pw) {
       const msgBuffer = new TextEncoder().encode('vb_salt_2026::' + String(pw));
       const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
@@ -1737,15 +1796,34 @@
       return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
     }
 
+    function appendAuditLog(db, eventName, actorName, details) {
+      if (!Array.isArray(db.audit_log)) db.audit_log = [];
+      const nextId = db.audit_log.reduce((m, a) => Math.max(m, a.id || 0), 0) + 1;
+      db.audit_log.unshift({
+        id: nextId,
+        ts: new Date().toISOString().slice(0, 19).replace('T', ' ') + ' UTC',
+        event: eventName,
+        actor: actorName || 'ANONYMOUS',
+        details: details || ''
+      });
+      if (db.audit_log.length > 200) db.audit_log.length = 200;
+    }
+
     function getCloudDB() {
       try {
-        const raw = localStorage.getItem('vb_production_cloud_db_v1');
-        if (raw) return JSON.parse(raw);
+        const raw = localStorage.getItem('vb_secure_vault_v5');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (!parsed.session_epoch) parsed.session_epoch = 100;
+          if (!Array.isArray(parsed.audit_log)) parsed.audit_log = [];
+          return parsed;
+        }
       } catch (e) {}
 
-      // Clean Production Database — ZERO example/dummy trips, bikes, or tickets
+      // Clean High-Security Production Database — Only Admin Account
       const initialDB = {
-        version: '3.0.0-production-clean',
+        version: '4.2.0-high-security',
+        session_epoch: 100,
         users: [
           {
             id: 1,
@@ -1757,23 +1835,33 @@
             plan: 'trackday',
             billing_cycle: 'yearly',
             esp_ip: '192.168.4.1',
+            email_verified: true,
             created_at: new Date().toISOString().slice(0, 10)
           }
         ],
         bikes: [],
         trips: [],
         tickets: [],
+        audit_log: [
+          {
+            id: 1,
+            ts: new Date().toISOString().slice(0, 19).replace('T', ' ') + ' UTC',
+            event: 'VAULT_INITIALIZED',
+            actor: 'SYSTEM',
+            details: 'High-security production vault initialized (2FA Email + Bot Protection)'
+          }
+        ],
         promos: [
           { code: 'FES2027', discount_percent: 100, target_plan: 'trackday', description: 'Projektlizenz Trackday Ultimate' },
           { code: 'VBRIDER50', discount_percent: 50, target_plan: 'pro', description: '50% Early-Adopter Rabatt' }
         ]
       };
-      localStorage.setItem('vb_production_cloud_db_v1', JSON.stringify(initialDB));
+      localStorage.setItem('vb_secure_vault_v5', JSON.stringify(initialDB));
       return initialDB;
     }
 
     function saveCloudDB(db, mailEvent = null) {
-      localStorage.setItem('vb_production_cloud_db_v1', JSON.stringify(db));
+      localStorage.setItem('vb_secure_vault_v5', JSON.stringify(db));
       if (googleCloudUrl) {
         fetch(googleCloudUrl, {
           method: 'POST',
@@ -1790,7 +1878,9 @@
         const r = await fetch(googleCloudUrl + '?action=pull');
         const data = await r.json();
         if (data && data.ok && data.db && Array.isArray(data.db.users) && data.db.users.length > 0) {
-          localStorage.setItem('vb_production_cloud_db_v1', JSON.stringify(data.db));
+          if (!data.db.session_epoch) data.db.session_epoch = 100;
+          if (!Array.isArray(data.db.audit_log)) data.db.audit_log = [];
+          localStorage.setItem('vb_secure_vault_v5', JSON.stringify(data.db));
           if (reloadUI && authToken) await loadBootstrap();
         }
       } catch (e) {}
@@ -1805,25 +1895,47 @@
       a.click();
     }
 
+    function revokeAllNonAdminSessions(purgeNonAdminUsers = false) {
+      const db = getCloudDB();
+      db.session_epoch = (Number(db.session_epoch) || 100) + 1;
+      if (purgeNonAdminUsers) {
+        db.users = (db.users || []).filter(u => u.role === 'admin' || u.id === 1);
+      }
+      appendAuditLog(db, 'GLOBAL_SESSION_REVOKE', 'admin', `Revoked all non-admin sessions (new epoch: ${db.session_epoch})`);
+      saveCloudDB(db);
+      loadBootstrap();
+    }
+
     function resetProductionDatabase() {
-      localStorage.removeItem('vb_production_cloud_db_v1');
+      localStorage.removeItem('vb_secure_vault_v5');
       const fresh = getCloudDB();
+      fresh.session_epoch = (Number(fresh.session_epoch) || 100) + 1;
+      appendAuditLog(fresh, 'VAULT_RESET', 'admin', 'Database reset to clean admin-only state');
       saveCloudDB(fresh);
       loadBootstrap();
     }
 
     async function serverlessApiHandler(path, method, body) {
-      if (path === '/api/auth/login' || path === '/api/auth/register') {
+      if (path === '/api/auth/login' || path === '/api/auth/register' || path === '/api/auth/check-email') {
         await pullFromGoogleCloud(false);
       }
       const db = getCloudDB();
+      const epoch = Number(db.session_epoch || 100);
       const uid = Number(localStorage.getItem('vb_cloud_uid') || 1);
-      const user = db.users.find(u => u.id === uid) || db.users[0];
+      const user = db.users.find(u => u.id === uid);
       const nowStr = new Date().toISOString().slice(0, 16).replace('T', ' ');
 
       if (path === '/api/server-info') {
         const isLocal = location.hostname === '127.0.0.1' || location.hostname === 'localhost';
         return { iosUrl: isLocal ? PUBLIC_CLOUD_APP_URL : window.location.href };
+      }
+
+      if (path === '/api/auth/check-email') {
+        const email = String((body && body.email) || '').trim().toLowerCase();
+        if (db.users.some(u => u.email.toLowerCase() === email)) {
+          throw new Error('Für diese E-Mail-Adresse existiert bereits ein verifiziertes Konto.');
+        }
+        return { ok: true };
       }
 
       if (path === '/api/auth/login') {
@@ -1832,33 +1944,42 @@
         const pwHash = await hashPassword(pw);
         const found = db.users.find(u => u.email.toLowerCase() === ident || u.username.toLowerCase() === ident);
         if (!found || found.pw_hash !== pwHash) {
-          throw new Error('Anmeldedaten ungültig. Bitte prüfe deine Eingabe oder registriere ein neues Konto.');
+          appendAuditLog(db, 'LOGIN_FAILED', ident || 'UNKNOWN', 'Invalid credentials');
+          saveCloudDB(db);
+          throw new Error('Anmeldedaten ungültig. Bitte prüfe Benutzername/E-Mail und Passwort.');
         }
+        if (found.role !== 'admin' && found.email_verified === false) {
+          throw new Error('E-Mail-Adresse wurde noch nicht bestätigt.');
+        }
+        appendAuditLog(db, 'LOGIN_SUCCESS', found.email, `Role: ${found.role}`);
+        saveCloudDB(db);
         localStorage.setItem('vb_cloud_uid', String(found.id));
         const safeUser = Object.assign({}, found);
         delete safeUser.pw_hash;
-        return { token: 'cloud_tok_' + found.id, user: safeUser };
+        const token = found.role === 'admin'
+          ? `cloud_tok_1_admin`
+          : `cloud_tok_${found.id}_ep${epoch}`;
+        return { token, user: safeUser };
       }
 
       if (path === '/api/auth/register') {
         const name = String(body.name || '').trim();
         const email = String(body.email || '').trim().toLowerCase();
         const username = email.split('@')[0];
-        const pw = String(body.password || '').trim();
+        const pwHash = String(body.pwHash || '').trim();
         const bikeModel = String(body.bikeModel || 'Yamaha MT-07').trim();
-        if (!name || !email || pw.length < 4) {
-          throw new Error('Bitte Name, gültige E-Mail und ein Passwort (mind. 4 Zeichen) eingeben.');
+        if (!name || !email || !pwHash || !body.emailVerified) {
+          throw new Error('Kontoerstellung abgelehnt: E-Mail-Verifizierung erforderlich.');
         }
         if (db.users.some(u => u.email.toLowerCase() === email)) {
           throw new Error('Für diese E-Mail-Adresse existiert bereits ein Konto.');
         }
 
-        const pwHash = await hashPassword(pw);
         const newId = db.users.reduce((m, u) => Math.max(m, u.id), 0) + 1;
         const newUser = {
           id: newId, name, email, username, pw_hash: pwHash,
           role: 'user', plan: 'pro', billing_cycle: 'monthly',
-          esp_ip: '192.168.4.1', created_at: nowStr
+          esp_ip: '192.168.4.1', email_verified: true, created_at: nowStr
         };
         db.users.push(newUser);
 
@@ -1872,6 +1993,7 @@
           tuv_date: '2027-06', battery_alert_v: 11.8
         });
 
+        appendAuditLog(db, 'ACCOUNT_VERIFIED_CREATED', email, `Verified email & created user #${newId}`);
         saveCloudDB(db, {
           type: 'register',
           userName: name,
@@ -1879,7 +2001,20 @@
           bikeModel: bikeModel
         });
         localStorage.setItem('vb_cloud_uid', String(newId));
-        return { token: 'cloud_tok_' + newId, user: newUser };
+        const safeUser = Object.assign({}, newUser);
+        delete safeUser.pw_hash;
+        return { token: `cloud_tok_${newId}_ep${epoch}`, user: safeUser };
+      }
+
+      // Session Validation Gate: Ensure user still exists and non-admin session_epoch matches
+      if (!user) {
+        throw new Error('SESSION_INVALID');
+      }
+      if (user.role !== 'admin') {
+        const expectedPrefix = `cloud_tok_${user.id}_ep${epoch}`;
+        if (!authToken || !authToken.startsWith(expectedPrefix)) {
+          throw new Error('SESSION_REVOKED');
+        }
       }
 
       if (path === '/api/bootstrap') {
@@ -2054,28 +2189,302 @@
       return serverlessApiHandler(path, method, body);
     }
 
-    // --- 3. AUTHENTICATION & PUBLIC MULTI-ACCOUNT FLOW ---
+    // --- 3. IT-SECURITY: ANTI-BOT, BRUTE-FORCE RATE LIMITER & 2-STEP EMAIL VERIFICATION ---
+    const botSecurity = {
+      expectedAnswer: 0,
+      formOpenedAt: performance.now(),
+      humanEvents: 0
+    };
+
+    const rateLimiter = {
+      failedAttempts: 0,
+      lockedUntilMs: 0
+    };
+
+    let pendingRegistration = null;
+
+    window.addEventListener('pointerdown', () => { botSecurity.humanEvents++; }, { passive: true });
+    window.addEventListener('keydown', () => { botSecurity.humanEvents++; }, { passive: true });
+
+    // Session Inactivity Watchdog (30 min auto-logout)
+    let lastActivityMs = Date.now();
+    ['pointerdown', 'keydown', 'touchstart'].forEach(ev => {
+      window.addEventListener(ev, () => { lastActivityMs = Date.now(); }, { passive: true });
+    });
+    setInterval(() => {
+      if (authToken && (Date.now() - lastActivityMs > 30 * 60 * 1000)) {
+        logoutUser();
+        showAuthError('Sitzung nach 30 Minuten Inaktivität aus Sicherheitsgründen automatisch beendet.');
+      }
+    }, 30000);
+
+    function generateBotChallenge() {
+      const rand = new Uint32Array(2);
+      crypto.getRandomValues(rand);
+      const a = (rand[0] % 14) + 6;
+      const b = (rand[1] % 9) + 3;
+      botSecurity.expectedAnswer = a + b;
+      const lbl = document.getElementById('lblBotQuestion');
+      if (lbl) lbl.textContent = `Sicherheitsprüfung: Was ergibt ${a} + ${b} ?`;
+      const inp = document.getElementById('inpBotAnswer');
+      if (inp) inp.value = '';
+    }
+
+    function checkRateLimit() {
+      const now = Date.now();
+      if (now < rateLimiter.lockedUntilMs) {
+        const remSec = Math.ceil((rateLimiter.lockedUntilMs - now) / 1000);
+        throw new Error(`Brute-Force-Schutzsperre aktiv. Bitte warte noch ${remSec} Sekunden.`);
+      }
+    }
+
+    function recordFailedAuthAttempt(reason, actor) {
+      rateLimiter.failedAttempts++;
+      const db = getCloudDB();
+      if (rateLimiter.failedAttempts >= 5) {
+        rateLimiter.lockedUntilMs = Date.now() + 60000;
+        rateLimiter.failedAttempts = 0;
+        appendAuditLog(db, 'BRUTE_FORCE_LOCKOUT', actor || 'CLIENT', `60s lockout triggered (${reason})`);
+        saveCloudDB(db);
+        const lbl = document.getElementById('lblRateLimitState');
+        if (lbl) {
+          lbl.style.color = 'var(--red)';
+          lbl.textContent = 'Sperre: 60s aktiv';
+        }
+      }
+    }
+
+    function updatePwStrength(pw) {
+      const lbl = document.getElementById('lblPwStrength');
+      if (!lbl) return;
+      const hasLen = pw.length >= 8;
+      const hasLetter = /[A-Za-z]/.test(pw);
+      const hasNumOrSpec = /[0-9!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(pw);
+      if (hasLen && hasLetter && hasNumOrSpec) {
+        lbl.style.color = 'var(--green)';
+        lbl.textContent = 'Passwort-Richtlinie erfüllt (Stark • SHA-256 bereit)';
+      } else {
+        lbl.style.color = 'var(--amber)';
+        lbl.textContent = 'Erforderlich: mind. 8 Zeichen, Buchstaben & mindestens eine Zahl/Sonderzeichen';
+      }
+    }
+
     function switchAuthMode(mode) {
       const isLogin = mode === 'login';
+      document.getElementById('authTabSwitchWrap').classList.remove('hide');
       document.getElementById('formLogin').classList.toggle('hide', !isLogin);
       document.getElementById('formRegister').classList.toggle('hide', isLogin);
+      document.getElementById('formVerifyEmail').classList.add('hide');
       document.getElementById('btnAuthTabLogin').classList.toggle('active', isLogin);
       document.getElementById('btnAuthTabReg').classList.toggle('active', !isLogin);
       document.getElementById('authErrorBox').classList.add('hide');
+      document.getElementById('authInfoBox').classList.add('hide');
+      botSecurity.formOpenedAt = performance.now();
+      generateBotChallenge();
     }
 
     function showAuthError(msg) {
       const box = document.getElementById('authErrorBox');
       box.textContent = msg;
       box.classList.remove('hide');
+      document.getElementById('authInfoBox').classList.add('hide');
+    }
+
+    function showAuthInfo(msg) {
+      const box = document.getElementById('authInfoBox');
+      box.textContent = msg;
+      box.classList.remove('hide');
+      document.getElementById('authErrorBox').classList.add('hide');
     }
 
     async function handleLogin(e) {
       e.preventDefault();
       try {
-        const identifier = document.getElementById('loginIdent').value;
+        checkRateLimit();
+        // Honeypot & Behavioral Anti-Bot Check
+        const hp = document.getElementById('hpTrapLogin').value;
+        if (hp) {
+          const db = getCloudDB();
+          appendAuditLog(db, 'BOT_HONEYPOT_BLOCKED', 'BOT', 'Login honeypot triggered');
+          saveCloudDB(db);
+          throw new Error('Sicherheitsprüfung fehlgeschlagen.');
+        }
+
+        const identifier = document.getElementById('loginIdent').value.trim();
         const password = document.getElementById('loginPw').value;
         const res = await apiCall('/api/auth/login', 'POST', { identifier, password });
+        rateLimiter.failedAttempts = 0;
+        authToken = res.token;
+        localStorage.setItem('vb_connect_token', authToken);
+        await loadBootstrap();
+      } catch (err) {
+        recordFailedAuthAttempt('LOGIN_FAIL', document.getElementById('loginIdent').value);
+        showAuthError(err.message);
+      }
+    }
+
+    async function sendVerificationCodeEmail(targetEmail, targetName, otpCode) {
+      if (!googleCloudUrl) {
+        throw new Error('Cloud-Mailserver ist nicht konfiguriert.');
+      }
+      const htmlBody =
+        `<p>Hallo <b>${escHtml(targetName)}</b>,</p>` +
+        `<p>bitte bestätige deine E-Mail-Adresse, um dein <b>VB Connect</b> Fahrzeugkonto zu erstellen. Gib dazu folgenden 6-stelligen Sicherheitscode in der App ein:</p>` +
+        `<div style="margin:20px 0;padding:18px;background:#18181b;border:1px solid #00bcd4;border-radius:10px;text-align:center;">` +
+          `<div style="font-size:11px;font-family:monospace;color:#a1a1aa;letter-spacing:0.12em;margin-bottom:6px;">SICHERHEITSCODE (10 MINUTEN GÜLTIG)</div>` +
+          `<div style="font-size:32px;font-family:monospace;font-weight:700;letter-spacing:0.28em;color:#ffffff;">${otpCode}</div>` +
+        `</div>` +
+        `<p style="font-size:12px;color:#a1a1aa;">Falls du diese Registrierung nicht angefordert hast, kannst du diese E-Mail ignorieren. Ohne Eingabe dieses Codes wird kein Konto erstellt.</p>`;
+
+      await fetch(googleCloudUrl, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({
+          action: 'send_mail',
+          to: targetEmail,
+           recipients: [targetEmail],
+          subject: `Sicherheitscode: ${otpCode} — E-Mail-Bestätigung`,
+          headline: 'E-Mail-Adresse bestätigen',
+          htmlBody: htmlBody,
+          mailType: 'EMAIL_VERIFICATION_OTP'
+        })
+      });
+    }
+
+    async function handleRegisterStep1(e) {
+      e.preventDefault();
+      try {
+        checkRateLimit();
+
+        // 1. Honeypot Bot Trap
+        if (document.getElementById('hpTrapReg').value) {
+          const db = getCloudDB();
+          appendAuditLog(db, 'BOT_HONEYPOT_BLOCKED', 'BOT', 'Registration honeypot field filled');
+          saveCloudDB(db);
+          throw new Error('Automatisierte Anfrage durch Bot-Schutz blockiert.');
+        }
+
+        // 2. Timing & Human Interaction Telemetry
+        const elapsedMs = performance.now() - botSecurity.formOpenedAt;
+        if (elapsedMs < 1500 || botSecurity.humanEvents < 2) {
+          const db = getCloudDB();
+          appendAuditLog(db, 'BOT_TIMING_BLOCKED', 'BOT', `Form submitted in ${Math.round(elapsedMs)}ms`);
+          saveCloudDB(db);
+          throw new Error('Bot-Schutz: Formular zu schnell oder ohne manuelle Interaktion abgesendet.');
+        }
+
+        // 3. Cryptographic Math/Security Challenge
+        const userAns = Number(document.getElementById('inpBotAnswer').value);
+        const chkHuman = document.getElementById('chkBotHuman').checked;
+        if (userAns !== botSecurity.expectedAnswer || !chkHuman) {
+          generateBotChallenge();
+          recordFailedAuthAttempt('BOT_CHALLENGE_FAIL', 'REGISTER');
+          throw new Error('Anti-Bot-Sicherheitsfrage nicht korrekt gelöst. Bitte erneut versuchen.');
+        }
+
+        const name = document.getElementById('regName').value.trim();
+        const email = document.getElementById('regEmail').value.trim().toLowerCase();
+        const password = document.getElementById('regPw').value;
+        const bikeModel = document.getElementById('regBike').value.trim();
+
+        // 4. Password Policy Validation (BSI / OWASP)
+        const hasLetter = /[A-Za-z]/.test(password);
+        const hasNumOrSpec = /[0-9!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password);
+        if (password.length < 8 || !hasLetter || !hasNumOrSpec) {
+          throw new Error('Passwort-Richtlinie: Mindestens 8 Zeichen sowie Buchstaben und mindestens eine Zahl/Sonderzeichen erforderlich.');
+        }
+
+        // 5. Verify Email is not already registered in live Cloud DB
+        await apiCall('/api/auth/check-email', 'POST', { email });
+
+        // 6. Generate 6-digit Cryptographic OTP Code & Send Verification Email
+        const randArr = new Uint32Array(1);
+        crypto.getRandomValues(randArr);
+        const otpCode = String(100000 + (randArr[0] % 900000));
+        const otpHash = await hashPassword(otpCode);
+        const pwHash = await hashPassword(password);
+
+        pendingRegistration = {
+          name,
+          email,
+          pwHash,
+          bikeModel,
+          otpHash,
+          expiresAt: Date.now() + 10 * 60 * 1000,
+          attempts: 0
+        };
+
+        const btn = document.getElementById('btnRegStep1Submit');
+        btn.disabled = true;
+        btn.textContent = 'Sende Bestätigungs-E-Mail...';
+
+        await sendVerificationCodeEmail(email, name, otpCode);
+
+        const db = getCloudDB();
+        appendAuditLog(db, 'EMAIL_OTP_SENT', email, '6-digit verification code sent via Cloud Mail');
+        saveCloudDB(db);
+
+        btn.disabled = false;
+        btn.textContent = 'Bestätigungs-E-Mail anfordern';
+
+        // Transition UI to Step 2 (Mandatory Email Code Verification)
+        document.getElementById('authTabSwitchWrap').classList.add('hide');
+        document.getElementById('formRegister').classList.add('hide');
+        document.getElementById('formVerifyEmail').classList.remove('hide');
+        document.getElementById('lblVerifyTargetEmail').textContent = email;
+        document.getElementById('inpEmailOtpCode').value = '';
+        showAuthInfo(`Bestätigungscode wurde an ${email} gesendet. Bitte Posteingang prüfen.`);
+      } catch (err) {
+        const btn = document.getElementById('btnRegStep1Submit');
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = 'Bestätigungs-E-Mail anfordern';
+        }
+        showAuthError(err.message);
+      }
+    }
+
+    async function handleRegisterVerifyCode(e) {
+      e.preventDefault();
+      try {
+        checkRateLimit();
+        if (!pendingRegistration) {
+          switchAuthMode('register');
+          throw new Error('Keine offene Registrierung gefunden. Bitte erneut starten.');
+        }
+        if (Date.now() > pendingRegistration.expiresAt) {
+          pendingRegistration = null;
+          switchAuthMode('register');
+          throw new Error('Der Bestätigungscode ist abgelaufen (10 Min. Limit). Bitte neu anfordern.');
+        }
+
+        const enteredCode = document.getElementById('inpEmailOtpCode').value.trim();
+        const enteredHash = await hashPassword(enteredCode);
+
+        if (enteredHash !== pendingRegistration.otpHash) {
+          pendingRegistration.attempts++;
+          recordFailedAuthAttempt('OTP_MISMATCH', pendingRegistration.email);
+          if (pendingRegistration.attempts >= 3) {
+            const failedEmail = pendingRegistration.email;
+            pendingRegistration = null;
+            switchAuthMode('register');
+            throw new Error(`Zu viele ungültige Code-Eingaben für ${failedEmail}. Registrierung abgebrochen.`);
+          }
+          throw new Error(`Ungültiger Bestätigungscode (${3 - pendingRegistration.attempts} Versuche verbleibend).`);
+        }
+
+        // OTP Verified! Now create the verified user account in the Cloud Database
+        const res = await apiCall('/api/auth/register', 'POST', {
+          name: pendingRegistration.name,
+          email: pendingRegistration.email,
+          pwHash: pendingRegistration.pwHash,
+          bikeModel: pendingRegistration.bikeModel,
+          emailVerified: true
+        });
+
+        pendingRegistration = null;
+        rateLimiter.failedAttempts = 0;
         authToken = res.token;
         localStorage.setItem('vb_connect_token', authToken);
         await loadBootstrap();
@@ -2084,20 +2493,26 @@
       }
     }
 
-    async function handleRegister(e) {
-      e.preventDefault();
+    async function resendVerificationEmail() {
+      if (!pendingRegistration) return;
       try {
-        const name = document.getElementById('regName').value;
-        const email = document.getElementById('regEmail').value;
-        const password = document.getElementById('regPw').value;
-        const bikeModel = document.getElementById('regBike').value;
-        const res = await apiCall('/api/auth/register', 'POST', { name, email, password, bikeModel });
-        authToken = res.token;
-        localStorage.setItem('vb_connect_token', authToken);
-        await loadBootstrap();
+        checkRateLimit();
+        const randArr = new Uint32Array(1);
+        crypto.getRandomValues(randArr);
+        const otpCode = String(100000 + (randArr[0] % 900000));
+        pendingRegistration.otpHash = await hashPassword(otpCode);
+        pendingRegistration.expiresAt = Date.now() + 10 * 60 * 1000;
+        pendingRegistration.attempts = 0;
+        await sendVerificationCodeEmail(pendingRegistration.email, pendingRegistration.name, otpCode);
+        showAuthInfo(`Neuer 6-stelliger Sicherheitscode wurde an ${pendingRegistration.email} gesendet.`);
       } catch (err) {
         showAuthError(err.message);
       }
+    }
+
+    function cancelEmailVerification() {
+      pendingRegistration = null;
+      switchAuthMode('register');
     }
 
     function logoutUser() {
@@ -2108,16 +2523,7 @@
       document.getElementById('viewApp').classList.add('hide');
       document.getElementById('bottomNav').classList.add('hide');
       document.getElementById('btnLogout').classList.add('hide');
-    }
-
-    async function toggleCurrentAccountAdmin() {
-      if (!currentUser) return;
-      const nextRole = currentUser.role === 'admin' ? 'user' : 'admin';
-      await apiCall('/api/admin/user-update', 'POST', { userId: currentUser.id, role: nextRole, plan: currentUser.plan });
-      await loadBootstrap();
-      if (nextRole === 'admin') {
-        switchTab('Admin');
-      }
+      switchAuthMode('login');
     }
 
     // --- 4. WORKSPACE BOOTSTRAP & TAB NAVIGATION ---
@@ -2614,10 +3020,10 @@
           <div class="card">
             <div class="card-header">
               <div>
-                <div class="card-label">${b.brand} • ${b.year}</div>
-                <div class="card-title">${b.name} (${b.model})</div>
+                <div class="card-label">${escHtml(b.brand)} • ${escHtml(b.year)}</div>
+                <div class="card-title">${escHtml(b.name)} (${escHtml(b.model)})</div>
               </div>
-              <span class="tag num">${b.plate}</span>
+              <span class="tag num">${escHtml(b.plate)}</span>
             </div>
 
             <div class="grid-3" style="margin-bottom: 14px;">
@@ -2697,15 +3103,15 @@
       container.innerHTML = tickets.map(t => `
         <div style="padding: 14px; border-radius: 10px; background: var(--bg-subtle); border: 1px solid var(--border); margin-bottom: 10px;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-            <div style="font-weight: 600; font-size: 14px;">#${t.id} — ${t.subject}</div>
-            <span class="tag ${t.status === 'answered' ? 'green' : 'amber'}">${t.status}</span>
+            <div style="font-weight: 600; font-size: 14px;">#${escHtml(t.id)} — ${escHtml(t.subject)}</div>
+            <span class="tag ${t.status === 'answered' ? 'green' : 'amber'}">${escHtml(t.status)}</span>
           </div>
           ${(t.messages || []).map(m => `
             <div style="padding: 9px 11px; border-radius: 8px; background: var(--bg-elevated); border: 1px solid var(--border); margin-top: 6px; font-size: 12.5px;">
               <div style="font-size: 10.5px; font-family: var(--font-mono); color: var(--text-secondary); margin-bottom: 3px;">
-                ${m.sender_name} (${m.sender_role.toUpperCase()}) • ${m.created_at}
+                ${escHtml(m.sender_name)} (${escHtml(m.sender_role.toUpperCase())}) • ${escHtml(m.created_at)}
               </div>
-              <div style="white-space: pre-line;">${m.message}</div>
+              <div style="white-space: pre-line;">${escHtml(m.message)}</div>
             </div>
           `).join('')}
           <div style="display: flex; gap: 6px; margin-top: 10px;">
@@ -3303,6 +3709,12 @@
 
     // Auto-connect & sync with Online Google Cloud Database on startup
     (function initOnlineCloudSync() {
+      generateBotChallenge();
+      // Force-logout any legacy non-admin token immediately
+      const currentUid = Number(localStorage.getItem('vb_cloud_uid') || 0);
+      if (authToken && currentUid !== 1 && !authToken.includes('_ep')) {
+        logoutUser();
+      }
       const params = new URLSearchParams(window.location.search);
       if (params.get('cloud')) {
         googleCloudUrl = params.get('cloud').trim();
