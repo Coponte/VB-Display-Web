@@ -1239,32 +1239,29 @@
           </div>
         </div>
 
-        <!-- Google Cloud Backend Connector & Live Database Access -->
+        <!-- Cloud Vault Connection & Project Email System -->
         <div class="grid-2">
           <div class="card">
             <div class="card-header">
               <div>
-                <div class="card-label">ONLINE DATENBANK &amp; GOOGLE SHEETS</div>
-                <div class="card-title">Google Cloud Live-Datenbank</div>
+                <div class="card-label">CLOUD DATABASE ENGINE (ACID VAULT)</div>
+                <div class="card-title">Verschlüsselter Cloud-Datenspeicher</div>
               </div>
-              <button type="button" class="sec sm" onclick="pullFromGoogleCloud()">Synchronisieren</button>
+              <button type="button" class="sec sm" onclick="pullFromGoogleCloud()">Cloud Sync</button>
             </div>
             <p style="font-size: 12.5px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 12px;">
-              Verbindet die App mit deinem Google Cloud Backend (`cloud/GoogleCloudBackend.gs`). Alle Accounts, Fahrzeuge, Fahrten und Tickets werden live in einer Google-Sheets-Tabelle (`VB_Connect_Datenbank`) gespeichert.
+              Isolierter NoSQL-Dokumentenspeicher mit <span class="num">LockService</span>-Transaktionsschutz und <span class="num">SHA-256</span>-Authentifizierung. Kein Excel/Google-Sheet – die Verwaltung erfolgt direkt unten im integrierten <b>VB Cloud DB Studio</b>.
             </p>
             <div class="field">
-              <label for="inpGoogleCloudUrl">Google Apps Script Web-App URL (`.../exec`)</label>
+              <label for="inpGoogleCloudUrl">Cloud API-Endpunkt (`TLS 1.3`)</label>
               <div style="display: flex; gap: 8px; flex-wrap: wrap;">
                 <input id="inpGoogleCloudUrl" type="text" class="num" style="flex: 1; min-width: 200px;" placeholder="https://script.google.com/macros/s/.../exec" />
-                <button type="button" onclick="saveGoogleCloudEndpoint()">Verbinden</button>
+                <button type="button" onclick="saveGoogleCloudEndpoint()">Speichern</button>
               </div>
             </div>
             <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px;">
-              <a id="btnOpenGoogleSheet" href="https://sheets.google.com" target="_blank" rel="noopener" style="text-decoration: none; flex: 1;">
-                <button type="button" class="sec sm" style="width: 100%;">Google Sheets Datenbank öffnen ↗</button>
-              </a>
-              <button type="button" class="sec sm" onclick="exportCloudDBJson()">JSON-Backup</button>
-              <button type="button" class="danger sm" onclick="resetProductionDatabase()">DB leeren</button>
+              <button type="button" class="sec sm" onclick="exportCloudDBJson()">Snapshot Export (.json)</button>
+              <button type="button" class="danger sm" onclick="resetProductionDatabase()">Vault zurücksetzen</button>
             </div>
           </div>
 
@@ -1293,10 +1290,51 @@
                 <textarea id="mailBody" rows="2" required placeholder="Deine Nachricht an die Benutzer..."></textarea>
               </div>
               <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px;">
-                <span id="mailStatusMsg" style="font-size: 11.5px; color: var(--text-secondary);">Willkommens- &amp; Ticket-Mails laufen automatisch.</span>
+                <span id="mailStatusMsg" style="font-size: 11.5px; color: var(--text-secondary);">Absender: vbdisplay.cloud@gmail.com</span>
                 <button type="submit" class="sm">E-Mail senden</button>
               </div>
             </form>
+          </div>
+        </div>
+
+        <!-- VB CLOUD DB STUDIO (IN-APP RELATIONAL & DOCUMENT DATABASE EXPLORER) -->
+        <div class="card">
+          <div class="card-header" style="flex-wrap: wrap;">
+            <div>
+              <div class="card-label">VB CLOUD DB STUDIO // INTEGRIERTE DATENBANK-KONSOLE</div>
+              <div class="card-title">Tabellen- &amp; Dokumenten-Inspektor</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+              <span id="dbStudioMeta" class="tag num">0 RECORDS • 0.0 KB</span>
+              <div class="seg-group">
+                <button type="button" id="btnDbModeTable" class="seg-btn active" onclick="setDbStudioViewMode('table')">Relationen-Tabelle</button>
+                <button type="button" id="btnDbModeJson" class="seg-btn" onclick="setDbStudioViewMode('json')">JSONB Dokument-Editor</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Collection Tabs & Search Filter -->
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 12px;">
+            <div class="seg-group">
+              <button type="button" class="seg-btn active" data-dbcol="users" onclick="selectDbCollection('users')">users</button>
+              <button type="button" class="seg-btn" data-dbcol="bikes" onclick="selectDbCollection('bikes')">bikes</button>
+              <button type="button" class="seg-btn" data-dbcol="trips" onclick="selectDbCollection('trips')">trips</button>
+              <button type="button" class="seg-btn" data-dbcol="tickets" onclick="selectDbCollection('tickets')">tickets</button>
+              <button type="button" class="seg-btn" data-dbcol="promos" onclick="selectDbCollection('promos')">promos</button>
+            </div>
+            <input id="inpDbSearch" type="text" class="num" style="max-width: 240px; padding: 6px 10px; font-size: 12px;" placeholder="WHERE filter..." oninput="renderDbStudio()" />
+          </div>
+
+          <!-- Table View -->
+          <div id="dbStudioTableView" style="overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; background: var(--bg-subtle);"></div>
+
+          <!-- Raw JSONB Document View -->
+          <div id="dbStudioJsonView" class="hide">
+            <textarea id="txtDbRawJson" class="num" rows="12" style="font-size: 12px; line-height: 1.45; background: var(--bg-subtle);"></textarea>
+            <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px;">
+              <button type="button" class="sec sm" onclick="renderDbStudio()">Änderungen verwerfen</button>
+              <button type="button" class="sm" onclick="commitDbStudioJson()">Transaction Commit (In Cloud speichern)</button>
+            </div>
           </div>
         </div>
 
@@ -1521,7 +1559,6 @@
   <script>
     const PUBLIC_CLOUD_APP_URL = 'https://coponte.github.io/VB-Display-Web/app/';
     const DEFAULT_GOOGLE_CLOUD_URL = 'https://script.google.com/macros/s/AKfycbxWkQh_VswHFy-D22vuWr6-toII00zn_0Wle-f0hv6U3ftRPdZibfAqE7eYsRdjekU/exec';
-    const DEFAULT_GOOGLE_SHEET_URL = 'https://docs.google.com/spreadsheets/d/188iO0ApEolGy3q2MQKrnuaerm7_iSJk-ZgIATwoOz8w/edit';
     let googleCloudUrl = localStorage.getItem('vb_google_cloud_url') || DEFAULT_GOOGLE_CLOUD_URL;
     let authToken = localStorage.getItem('vb_connect_token') || '';
     let currentUser = null;
@@ -1700,8 +1737,6 @@
       return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
     }
 
-    let googleSheetUrl = localStorage.getItem('vb_google_sheet_url') || DEFAULT_GOOGLE_SHEET_URL;
-
     function getCloudDB() {
       try {
         const raw = localStorage.getItem('vb_production_cloud_db_v1');
@@ -1754,17 +1789,9 @@
       try {
         const r = await fetch(googleCloudUrl + '?action=pull');
         const data = await r.json();
-        if (data && data.ok) {
-          if (data.sheet_url) {
-            googleSheetUrl = data.sheet_url;
-            localStorage.setItem('vb_google_sheet_url', googleSheetUrl);
-            const btnSheet = document.getElementById('btnOpenGoogleSheet');
-            if (btnSheet) btnSheet.href = googleSheetUrl;
-          }
-          if (data.db && Array.isArray(data.db.users) && data.db.users.length > 0) {
-            localStorage.setItem('vb_production_cloud_db_v1', JSON.stringify(data.db));
-            if (reloadUI && authToken) await loadBootstrap();
-          }
+        if (data && data.ok && data.db && Array.isArray(data.db.users) && data.db.users.length > 0) {
+          localStorage.setItem('vb_production_cloud_db_v1', JSON.stringify(data.db));
+          if (reloadUI && authToken) await loadBootstrap();
         }
       } catch (e) {}
     }
@@ -2789,19 +2816,108 @@
       }
     }
 
+    let activeDbCollection = 'users';
+    let activeDbViewMode = 'table';
+
+    function selectDbCollection(col) {
+      activeDbCollection = col;
+      document.querySelectorAll('[data-dbcol]').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.dbcol === col);
+      });
+      renderDbStudio();
+    }
+
+    function setDbStudioViewMode(mode) {
+      activeDbViewMode = mode;
+      document.getElementById('btnDbModeTable').classList.toggle('active', mode === 'table');
+      document.getElementById('btnDbModeJson').classList.toggle('active', mode === 'json');
+      document.getElementById('dbStudioTableView').classList.toggle('hide', mode !== 'table');
+      document.getElementById('dbStudioJsonView').classList.toggle('hide', mode !== 'json');
+      renderDbStudio();
+    }
+
+    function deleteDbRecord(col, idOrCode) {
+      const db = getCloudDB();
+      if (!Array.isArray(db[col])) return;
+      if (col === 'users' && Number(idOrCode) === 1) return; // Primary admin protected
+      db[col] = db[col].filter(r => String(r.id !== undefined ? r.id : r.code) !== String(idOrCode));
+      saveCloudDB(db);
+      loadBootstrap();
+    }
+
+    function commitDbStudioJson() {
+      try {
+        const parsed = JSON.parse(document.getElementById('txtDbRawJson').value);
+        if (!Array.isArray(parsed)) throw new Error('Collection muss ein JSON-Array sein');
+        const db = getCloudDB();
+        db[activeDbCollection] = parsed;
+        saveCloudDB(db);
+        loadBootstrap();
+      } catch (err) {
+        alert('JSON Syntax-Fehler: ' + err.message);
+      }
+    }
+
+    function renderDbStudio() {
+      const db = getCloudDB();
+      const rawBytes = new Blob([JSON.stringify(db)]).size;
+      const rows = Array.isArray(db[activeDbCollection]) ? db[activeDbCollection] : [];
+      const query = (document.getElementById('inpDbSearch') ? document.getElementById('inpDbSearch').value : '').trim().toLowerCase();
+
+      const filtered = query
+        ? rows.filter(r => JSON.stringify(r).toLowerCase().includes(query))
+        : rows;
+
+      const metaEl = document.getElementById('dbStudioMeta');
+      if (metaEl) {
+        metaEl.textContent = `${filtered.length} RECORDS IN ${activeDbCollection.toUpperCase()} • ${(rawBytes / 1024).toFixed(1)} KB`;
+      }
+
+      const txtJson = document.getElementById('txtDbRawJson');
+      if (txtJson) {
+        txtJson.value = JSON.stringify(rows, null, 2);
+      }
+
+      const tblWrap = document.getElementById('dbStudioTableView');
+      if (!tblWrap) return;
+
+      if (filtered.length === 0) {
+        tblWrap.innerHTML = `<div class="num" style="padding: 18px; font-size: 12px; color: var(--text-secondary);">0 rows in collection "${activeDbCollection}".</div>`;
+        return;
+      }
+
+      const cols = Object.keys(filtered[0]).filter(k => k !== 'telemetry' && k !== 'messages');
+      const headerHtml = cols.map(c => `<th style="text-align:left;padding:9px 12px;border-bottom:1px solid var(--border);font:600 10.5px var(--font-mono);color:var(--text-secondary);text-transform:uppercase;white-space:nowrap;">${c}</th>`).join('') +
+        `<th style="text-align:right;padding:9px 12px;border-bottom:1px solid var(--border);font:600 10.5px var(--font-mono);color:var(--text-secondary);">ACTION</th>`;
+
+      const bodyHtml = filtered.map(row => {
+        const pk = row.id !== undefined ? row.id : row.code;
+        const cells = cols.map(c => {
+          let val = row[c];
+          if (c === 'pw_hash' && typeof val === 'string') val = val.slice(0, 14) + '… (SHA-256)';
+          return `<td class="num" style="padding:9px 12px;border-bottom:1px solid var(--border);font-size:12px;white-space:nowrap;">${val !== undefined && val !== null ? String(val) : 'NULL'}</td>`;
+        }).join('');
+        const canDelete = !(activeDbCollection === 'users' && Number(pk) === 1);
+        return `<tr>${cells}<td style="padding:9px 12px;border-bottom:1px solid var(--border);text-align:right;">
+          ${canDelete ? `<button type="button" class="danger sm" style="padding:3px 8px;font-size:10.5px;" onclick="deleteDbRecord('${activeDbCollection}','${pk}')">DROP</button>` : `<span class="tag" style="font-size:9.5px;">SYSTEM PK</span>`}
+        </td></tr>`;
+      }).join('');
+
+      tblWrap.innerHTML = `<table style="width:100%;border-collapse:collapse;"><thead><tr>${headerHtml}</tr></thead><tbody>${bodyHtml}</tbody></table>`;
+    }
+
     function renderAdminCenter() {
       const adm = appData.admin;
       if (!adm) return;
       const gInp = document.getElementById('inpGoogleCloudUrl');
       if (gInp) gInp.value = googleCloudUrl;
-      const btnSheet = document.getElementById('btnOpenGoogleSheet');
-      if (btnSheet) btnSheet.href = googleSheetUrl;
 
       const mailSel = document.getElementById('mailRecipient');
       if (mailSel) {
         mailSel.innerHTML = `<option value="ALL">An alle registrierten Benutzer (${(adm.users || []).length} Konten)</option>` +
           (adm.users || []).map(u => `<option value="${u.email}">${u.name} (${u.email})</option>`).join('');
       }
+      renderDbStudio();
 
       document.getElementById('admKpiUsers').textContent = adm.kpis.totalUsers;
       document.getElementById('admKpiTrips').textContent = adm.kpis.totalTrips;
