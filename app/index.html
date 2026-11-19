@@ -777,19 +777,19 @@
   <main class="container">
 
     <!-- ===================================================================
-         PUBLIC AUTHENTICATION VIEW (LOGIN, BOT-PROTECTION & EMAIL DOUBLE-OPT-IN)
+         AUTHENTICATION VIEW (LOGIN, REGISTRATION & PASSWORD RESET)
          =================================================================== -->
     <section id="viewAuth" class="auth-wrap">
       <div class="card" style="padding: 26px;">
-        <div class="sec-kicker">VB // SECURE TELEMETRY CLOUD</div>
-        <h1 class="sec-title" style="margin-bottom: 6px;">Fahrzeugzugang &amp; <em>Konto</em></h1>
+        <div class="sec-kicker">VB CONNECT</div>
+        <h1 class="sec-title" style="margin-bottom: 6px;">Anmelden</h1>
         <p style="font-size: 13.5px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 20px;">
-          Geschützter Cloud-Zugang mit Ende-zu-Ende-Passwort-Hashing (<span class="num">SHA-256</span>), Bot-Schutz und verpflichtender E-Mail-Verifizierung.
+          Melde dich mit deinem Konto an oder erstelle einen neuen Zugang.
         </p>
 
         <div id="authTabSwitchWrap" class="seg-group" style="width: 100%; margin-bottom: 18px;">
           <button type="button" id="btnAuthTabLogin" class="seg-btn active" style="flex:1; padding: 8px;" onclick="switchAuthMode('login')">Anmelden</button>
-          <button type="button" id="btnAuthTabReg" class="seg-btn" style="flex:1; padding: 8px;" onclick="switchAuthMode('register')">Neues Konto erstellen</button>
+          <button type="button" id="btnAuthTabReg" class="seg-btn" style="flex:1; padding: 8px;" onclick="switchAuthMode('register')">Registrieren</button>
         </div>
 
         <div id="authErrorBox" class="tag red hide" style="width: 100%; padding: 10px 12px; margin-bottom: 14px; text-transform: none; font-family: var(--font-sans); font-size: 12.5px;"></div>
@@ -810,115 +810,96 @@
             </div>
             <input id="loginPw" type="password" required autocomplete="current-password" placeholder="••••••••" />
           </div>
-          <button type="submit" id="btnLoginSubmit" style="width: 100%; margin-top: 6px;">Sicher anmelden</button>
+          <button type="submit" id="btnLoginSubmit" style="width: 100%; margin-top: 6px;">Anmelden</button>
         </form>
 
-        <!-- Password Reset Step 1: Request 6-Digit Email Code -->
+        <!-- Password Reset Step 1 -->
         <form id="formResetStep1" class="hide" onsubmit="handleResetRequestCode(event)">
-          <div style="padding: 13px; border-radius: 10px; background: var(--bg-subtle); border: 1px solid var(--border); margin-bottom: 14px;">
-            <div class="card-label" style="color: var(--accent); margin-bottom: 4px;">PASSWORT ZURÜCKSETZEN // SCHRITT 1</div>
-            <p style="font-size: 12.5px; color: var(--text-secondary); line-height: 1.5;">
-              Gib deine registrierte E-Mail-Adresse ein. Wir senden dir einen 6-stelligen Sicherheitscode zum Zurücksetzen deines Passworts.
-            </p>
-          </div>
+          <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 14px;">
+            Gib deine E-Mail-Adresse ein. Wir senden dir einen Code zum Zurücksetzen deines Passworts.
+          </p>
           <div class="field">
-            <label for="inpResetEmail">Registrierte E-Mail-Adresse</label>
+            <label for="inpResetEmail">E-Mail-Adresse</label>
             <input id="inpResetEmail" type="email" required autocomplete="email" placeholder="name@domain.de" />
           </div>
-          <button type="submit" id="btnResetReqSubmit" style="width: 100%; margin-top: 4px;">Sicherheitscode per E-Mail senden</button>
-          <button type="button" class="ghost sm" style="width: 100%; margin-top: 8px;" onclick="switchAuthMode('login')">Zurück zum Login</button>
+          <button type="submit" id="btnResetReqSubmit" style="width: 100%; margin-top: 4px;">Code senden</button>
+          <button type="button" class="ghost sm" style="width: 100%; margin-top: 8px;" onclick="switchAuthMode('login')">Zurück</button>
         </form>
 
-        <!-- Password Reset Step 2: Verify Code & Set New Password -->
+        <!-- Password Reset Step 2 -->
         <form id="formResetStep2" class="hide" onsubmit="handleResetConfirmNewPw(event)">
-          <div style="padding: 13px; border-radius: 10px; background: var(--bg-subtle); border: 1px solid var(--border); margin-bottom: 14px;">
-            <div class="card-label" style="color: var(--accent); margin-bottom: 4px;">PASSWORT ZURÜCKSETZEN // SCHRITT 2</div>
-            <p style="font-size: 12.5px; color: var(--text-secondary); line-height: 1.5;">
-              Code gesendet an <b id="lblResetTargetEmail" class="num" style="color: var(--text);"></b>. Gib den 6-stelligen Code und dein neues Passwort ein.
-            </p>
-          </div>
+          <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 14px;">
+            Code gesendet an <b id="lblResetTargetEmail" class="num" style="color: var(--text);"></b>.
+          </p>
           <div class="field">
-            <label for="inpResetOtpCode">6-stelliger E-Mail-Sicherheitscode</label>
+            <label for="inpResetOtpCode">Bestätigungscode</label>
             <input id="inpResetOtpCode" type="text" class="num" required minlength="6" maxlength="6" inputmode="numeric" autocomplete="one-time-code" placeholder="000000" style="font-size: 19px; letter-spacing: 0.25em; text-align: center; font-weight: 700;" />
           </div>
           <div class="field">
-            <label for="inpResetNewPw">Neues Passwort (min. 8 Zeichen, Buchstaben &amp; Zahl)</label>
-            <input id="inpResetNewPw" type="password" required minlength="8" maxlength="128" autocomplete="new-password" placeholder="Neues sicheres Passwort" />
+            <label for="inpResetNewPw">Neues Passwort (min. 8 Zeichen, inkl. Zahl)</label>
+            <input id="inpResetNewPw" type="password" required minlength="8" maxlength="128" autocomplete="new-password" placeholder="Neues Passwort" />
           </div>
           <div class="field">
-            <label for="inpResetNewPw2">Neues Passwort wiederholen</label>
-            <input id="inpResetNewPw2" type="password" required minlength="8" maxlength="128" autocomplete="new-password" placeholder="Passwort bestätigen" />
+            <label for="inpResetNewPw2">Neues Passwort bestätigen</label>
+            <input id="inpResetNewPw2" type="password" required minlength="8" maxlength="128" autocomplete="new-password" placeholder="Passwort wiederholen" />
           </div>
-          <button type="submit" style="width: 100%; margin-top: 6px;">Passwort speichern &amp; anmelden</button>
+          <button type="submit" style="width: 100%; margin-top: 6px;">Passwort speichern</button>
           <button type="button" class="ghost sm" style="width: 100%; margin-top: 8px;" onclick="switchAuthMode('login')">Abbrechen</button>
         </form>
 
-        <!-- Step 1: Registration Form (With Multi-Layer Anti-Bot & Password Policy) -->
+        <!-- Step 1: Registration Form -->
         <form id="formRegister" class="hide" onsubmit="handleRegisterStep1(event)">
           <!-- Honeypot Trap (Invisible to humans) -->
           <input id="hpTrapReg" type="text" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;opacity:0;height:0;width:0;" />
           <div class="field">
-            <label for="regName">Vollständiger Name</label>
+            <label for="regName">Name</label>
             <input id="regName" type="text" required maxlength="80" autocomplete="name" placeholder="Vorname Nachname" />
           </div>
           <div class="field">
-            <label for="regEmail">E-Mail-Adresse (Bestätigungscode wird gesendet)</label>
-            <input id="regEmail" type="email" required maxlength="120" autocomplete="email" placeholder="fahrer@domain.de" />
+            <label for="regEmail">E-Mail-Adresse</label>
+            <input id="regEmail" type="email" required maxlength="120" autocomplete="email" placeholder="name@domain.de" />
           </div>
           <div class="field">
-            <label for="regPw">Passwort (min. 8 Zeichen, Buchstaben &amp; Zahl)</label>
-            <input id="regPw" type="password" required minlength="8" maxlength="128" autocomplete="new-password" placeholder="Sicheres Passwort wählen" oninput="updatePwStrength(this.value)" />
-            <div id="lblPwStrength" class="num" style="font-size: 10.5px; color: var(--text-secondary); margin-top: 4px;">Passwort-Richtlinie: mind. 8 Zeichen + Ziffer</div>
+            <label for="regPw">Passwort (min. 8 Zeichen, inkl. Zahl)</label>
+            <input id="regPw" type="password" required minlength="8" maxlength="128" autocomplete="new-password" placeholder="Passwort wählen" oninput="updatePwStrength(this.value)" />
+            <div id="lblPwStrength" class="num" style="font-size: 10.5px; color: var(--text-secondary); margin-top: 4px;">Mindestens 8 Zeichen &amp; eine Zahl</div>
           </div>
           <div class="field">
             <label for="regBike">Motorradmodell</label>
-            <input id="regBike" type="text" required maxlength="80" placeholder="z. B. Yamaha MT-07 / BMW S1000R" value="Yamaha MT-07" />
+            <input id="regBike" type="text" required maxlength="80" placeholder="z. B. Yamaha MT-07" value="Yamaha MT-07" />
           </div>
 
-          <!-- Anti-Bot Security Challenge -->
           <div style="padding: 12px; border-radius: 10px; background: var(--bg-subtle); border: 1px solid var(--border); margin-bottom: 14px;">
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-              <span class="card-label" style="color: var(--accent);">ANTI-BOT SICHERHEITSPRÜFUNG</span>
-              <button type="button" class="ghost sm" style="padding: 2px 6px; font-size: 10px;" onclick="generateBotChallenge()">Neu</button>
-            </div>
             <div class="field" style="margin-bottom: 8px;">
-              <label id="lblBotQuestion" for="inpBotAnswer">Sicherheitsfrage lädt...</label>
-              <input id="inpBotAnswer" type="number" class="num" required inputmode="numeric" placeholder="Ergebnis eingeben" />
+              <label id="lblBotQuestion" for="inpBotAnswer">Rechenaufgabe</label>
+              <input id="inpBotAnswer" type="number" class="num" required inputmode="numeric" placeholder="Ergebnis" />
             </div>
             <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-secondary); cursor: pointer;">
               <input id="chkBotHuman" type="checkbox" required />
-              <span>Ich bestätige, dass diese Registrierung manuell erfolgt (Bot-Schutz).</span>
+              <span>Ich bin kein Roboter</span>
             </label>
           </div>
 
-          <button type="submit" id="btnRegStep1Submit" style="width: 100%;">Bestätigungs-E-Mail anfordern</button>
+          <button type="submit" id="btnRegStep1Submit" style="width: 100%;">Registrieren</button>
         </form>
 
-        <!-- Step 2: Mandatory Email Verification (Double-Opt-In 6-Digit Code) -->
+        <!-- Step 2: Email Verification -->
         <form id="formVerifyEmail" class="hide" onsubmit="handleRegisterVerifyCode(event)">
-          <div style="padding: 14px; border-radius: 10px; background: var(--bg-subtle); border: 1px solid var(--border); margin-bottom: 14px;">
-            <div class="card-label" style="color: var(--accent); margin-bottom: 4px;">SCHRITT 2 // E-MAIL-VERIFIZIERUNG</div>
-            <p style="font-size: 12.5px; color: var(--text-secondary); line-height: 1.5;">
-              Wir haben einen 6-stelligen Sicherheitscode an <b id="lblVerifyTargetEmail" class="num" style="color: var(--text);"></b> gesendet. Das Konto wird erst nach Eingabe des Codes erstellt.
-            </p>
-          </div>
+          <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 14px;">
+            Wir haben einen 6-stelligen Bestätigungscode an <b id="lblVerifyTargetEmail" class="num" style="color: var(--text);"></b> gesendet.
+          </p>
 
           <div class="field">
-            <label for="inpEmailOtpCode">6-stelliger E-Mail-Bestätigungscode</label>
+            <label for="inpEmailOtpCode">Bestätigungscode</label>
             <input id="inpEmailOtpCode" type="text" class="num" required minlength="6" maxlength="6" inputmode="numeric" autocomplete="one-time-code" placeholder="000000" style="font-size: 20px; letter-spacing: 0.28em; text-align: center; font-weight: 700;" />
           </div>
 
-          <button type="submit" style="width: 100%; margin-top: 6px;">E-Mail bestätigen &amp; Konto aktivieren</button>
+          <button type="submit" style="width: 100%; margin-top: 6px;">Konto bestätigen</button>
           <div style="display: flex; justify-content: space-between; gap: 8px; margin-top: 10px;">
-            <button type="button" class="sec sm" style="flex: 1;" onclick="resendVerificationEmail()">Code erneut senden</button>
+            <button type="button" class="sec sm" style="flex: 1;" onclick="resendVerificationEmail()">Erneut senden</button>
             <button type="button" class="ghost sm" style="flex: 1;" onclick="cancelEmailVerification()">Zurück</button>
           </div>
         </form>
-
-        <div style="margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: var(--text-secondary);">
-          <span class="num">SECURITY: TLS 1.3 • SHA-256 • 2FA-MAIL</span>
-          <span id="lblRateLimitState">Brute-Force-Schutz aktiv</span>
-        </div>
       </div>
     </section>
 
@@ -1621,16 +1602,13 @@
             <div class="card">
               <div class="card-header">
                 <div>
-                  <div class="card-label">CLOUD DATABASE ENGINE (ACID VAULT)</div>
-                  <div class="card-title">Verschlüsselter Cloud-Datenspeicher</div>
+                  <div class="card-label">CLOUD-DATENBANK</div>
+                  <div class="card-title">Cloud-Verbindung</div>
                 </div>
-                <button type="button" class="sec sm" onclick="pullFromGoogleCloud()">Cloud Sync</button>
+                <button type="button" class="sec sm" onclick="pullFromGoogleCloud()">Synchronisieren</button>
               </div>
-              <p style="font-size: 12.5px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 12px;">
-                Isolierter NoSQL-Dokumentenspeicher mit <span class="num">LockService</span>-Transaktionsschutz und <span class="num">SHA-256</span>-Authentifizierung.
-              </p>
               <div class="field">
-                <label for="inpGoogleCloudUrl">Cloud API-Endpunkt (`TLS 1.3`)</label>
+                <label for="inpGoogleCloudUrl">Cloud Endpunkt</label>
                 <div style="display: flex; gap: 8px; flex-wrap: wrap;">
                   <input id="inpGoogleCloudUrl" type="text" class="num" style="flex: 1; min-width: 200px;" placeholder="https://script.google.com/macros/s/.../exec" />
                   <button type="button" onclick="saveGoogleCloudEndpoint()">Speichern</button>
@@ -2546,7 +2524,7 @@
       const b = (rand[1] % 9) + 3;
       botSecurity.expectedAnswer = a + b;
       const lbl = document.getElementById('lblBotQuestion');
-      if (lbl) lbl.textContent = `Sicherheitsprüfung: Was ergibt ${a} + ${b} ?`;
+      if (lbl) lbl.textContent = `Was ergibt ${a} + ${b} ?`;
       const inp = document.getElementById('inpBotAnswer');
       if (inp) inp.value = '';
     }
@@ -2583,10 +2561,10 @@
       const hasNumOrSpec = /[0-9!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(pw);
       if (hasLen && hasLetter && hasNumOrSpec) {
         lbl.style.color = 'var(--green)';
-        lbl.textContent = 'Passwort-Richtlinie erfüllt (Stark • SHA-256 bereit)';
+        lbl.textContent = 'Passwort erfüllt die Anforderungen';
       } else {
         lbl.style.color = 'var(--amber)';
-        lbl.textContent = 'Erforderlich: mind. 8 Zeichen, Buchstaben & mindestens eine Zahl/Sonderzeichen';
+        lbl.textContent = 'Mindestens 8 Zeichen, Buchstaben & eine Zahl';
       }
     }
 
