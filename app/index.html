@@ -313,6 +313,42 @@
       padding: 18px;
       margin-bottom: 14px;
       box-shadow: var(--shadow-card);
+      min-width: 0;
+      max-width: 100%;
+    }
+
+    /* --- Horizontal Scroll Viewport for Database Studio --- */
+    .db-scroll-viewport {
+      width: 100%;
+      max-width: 100%;
+      overflow-x: auto;
+      overflow-y: hidden;
+      -webkit-overflow-scrolling: touch;
+      touch-action: pan-x pan-y;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--bg-subtle);
+      display: block;
+    }
+
+    .db-scroll-viewport::-webkit-scrollbar {
+      height: 9px;
+    }
+
+    .db-scroll-viewport::-webkit-scrollbar-track {
+      background: var(--bg-subtle);
+      border-radius: 8px;
+    }
+
+    .db-scroll-viewport::-webkit-scrollbar-thumb {
+      background: var(--border-strong);
+      border-radius: 8px;
+    }
+
+    .db-scroll-viewport table {
+      width: max-content;
+      min-width: 100%;
+      border-collapse: collapse;
     }
 
     .card-header {
@@ -1254,13 +1290,13 @@
       </section>
 
       <!-- -----------------------------------------------------------------
-           05 // ADMIN SYSTEM, GOOGLE CLOUD SYNC & HARDWARE SIMULATOR
+           05 // ADMIN SYSTEM, SUPPORT DESK & HARDWARE SIMULATOR
            ----------------------------------------------------------------- -->
       <section id="viewAdmin" class="hide">
         <div class="sec-head">
           <div>
-            <div class="sec-kicker">05 // SYSTEMADMINISTRATION &amp; ECU-SIMULATOR</div>
-            <h1 class="sec-title">System <em>Konsole</em></h1>
+            <div id="admSecKicker" class="sec-kicker">05 // SYSTEMADMINISTRATION &amp; ECU-SIMULATOR</div>
+            <h1 id="admSecTitle" class="sec-title">System <em>Konsole</em></h1>
           </div>
           <span id="admCloudBadge" class="tag green">CLOUD ENGINE AKTIV</span>
         </div>
@@ -1279,15 +1315,15 @@
             <div class="stat-label">OFFENE TICKETS</div>
             <div id="admKpiTickets" class="stat-value">0</div>
           </div>
-          <div class="stat-box">
+          <div class="stat-box admin-only-block">
             <div class="stat-label">ABO-UMSATZ (MRR)</div>
             <div id="admKpiMrr" class="stat-value">0,00 €</div>
           </div>
         </div>
 
-        <!-- Cloud Vault Connection & Project Email System -->
+        <!-- Cloud Vault Connection (Admin Only) & Project Email System (Admin + Support) -->
         <div class="grid-2">
-          <div class="card">
+          <div class="card admin-only-block">
             <div class="card-header">
               <div>
                 <div class="card-label">CLOUD DATABASE ENGINE (ACID VAULT)</div>
@@ -1330,11 +1366,11 @@
               </div>
               <div class="field">
                 <label for="mailSubject">Betreff</label>
-                <input id="mailSubject" type="text" required placeholder="z. B. Firmware-Update v2.5 &amp; Wartungshinweis" />
+                <input id="mailSubject" type="text" required placeholder="z. B. Rückfrage zu deinem Support-Ticket" />
               </div>
               <div class="field">
                 <label for="mailBody">Nachricht</label>
-                <textarea id="mailBody" rows="2" required placeholder="Deine Nachricht an die Benutzer..."></textarea>
+                <textarea id="mailBody" rows="2" required placeholder="Deine Nachricht an den Benutzer..."></textarea>
               </div>
               <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px;">
                 <span id="mailStatusMsg" style="font-size: 11.5px; color: var(--text-secondary);">Absender: vbdisplay.cloud@gmail.com</span>
@@ -1344,8 +1380,8 @@
           </div>
         </div>
 
-        <!-- VB CLOUD DB STUDIO (IN-APP RELATIONAL & DOCUMENT DATABASE EXPLORER) -->
-        <div class="card">
+        <!-- VB CLOUD DB STUDIO (ADMIN ONLY — IN-APP RELATIONAL & DOCUMENT DATABASE EXPLORER) -->
+        <div class="card admin-only-block">
           <div class="card-header" style="flex-wrap: wrap;">
             <div>
               <div class="card-label">VB CLOUD DB STUDIO // INTEGRIERTE DATENBANK-KONSOLE</div>
@@ -1360,9 +1396,9 @@
             </div>
           </div>
 
-          <!-- Collection Tabs & Search Filter -->
+          <!-- Collection Tabs, Horizontal Scroll Controls & Search Filter -->
           <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 12px;">
-            <div class="seg-group">
+            <div class="seg-group" style="overflow-x: auto; max-width: 100%;">
               <button type="button" class="seg-btn active" data-dbcol="users" onclick="selectDbCollection('users')">users</button>
               <button type="button" class="seg-btn" data-dbcol="bikes" onclick="selectDbCollection('bikes')">bikes</button>
               <button type="button" class="seg-btn" data-dbcol="trips" onclick="selectDbCollection('trips')">trips</button>
@@ -1370,11 +1406,15 @@
               <button type="button" class="seg-btn" data-dbcol="promos" onclick="selectDbCollection('promos')">promos</button>
               <button type="button" class="seg-btn" data-dbcol="audit_log" onclick="selectDbCollection('audit_log')">audit_log</button>
             </div>
-            <input id="inpDbSearch" type="text" class="num" style="max-width: 240px; padding: 6px 10px; font-size: 12px;" placeholder="WHERE filter..." oninput="renderDbStudio()" />
+            <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+              <button type="button" class="sec sm" onclick="scrollDbTable(-280)" title="Tabelle nach links scrollen">← Spalten</button>
+              <button type="button" class="sec sm" onclick="scrollDbTable(280)" title="Tabelle nach rechts scrollen">Spalten →</button>
+              <input id="inpDbSearch" type="text" class="num" style="width: 180px; padding: 6px 10px; font-size: 12px;" placeholder="WHERE filter..." oninput="renderDbStudio()" />
+            </div>
           </div>
 
-          <!-- Table View -->
-          <div id="dbStudioTableView" style="overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; background: var(--bg-subtle);"></div>
+          <!-- Horizontally Scrollable Table View -->
+          <div id="dbStudioTableView" class="db-scroll-viewport"></div>
 
           <!-- Raw JSONB Document View -->
           <div id="dbStudioJsonView" class="hide">
@@ -1386,8 +1426,8 @@
           </div>
         </div>
 
-        <!-- ESP32 Ride Simulator -->
-        <div class="card">
+        <!-- ESP32 Ride Simulator (Admin Only) -->
+        <div class="card admin-only-block">
           <div class="card-header">
             <div>
               <div class="card-label">HARDWARE-TESTUMGEBUNG (OHNE GPS-SENSOR)</div>
@@ -1447,16 +1487,27 @@
           </div>
         </div>
 
-        <!-- User & Support Management -->
+        <!-- User, Vehicle & Support Management -->
         <div class="grid-2">
-          <div class="card">
-            <div class="card-label">KONTENVERWALTUNG</div>
-            <div class="card-title" style="margin: 4px 0 12px;">Registrierte Benutzer</div>
-            <div id="admUsersList"></div>
+          <div>
+            <!-- Registered Users -->
+            <div class="card">
+              <div class="card-label">KONTEN &amp; ROLLENVERWALTUNG</div>
+              <div class="card-title" style="margin: 4px 0 12px;">Registrierte Benutzer</div>
+              <div id="admUsersList"></div>
+            </div>
+
+            <!-- All User Vehicles (Admin can delete any vehicle) -->
+            <div class="card">
+              <div class="card-label">FAHRZEUGBESTAND ALLER NUTZER</div>
+              <div class="card-title" style="margin: 4px 0 12px;">Benutzer-Fahrzeuge verwalten</div>
+              <div id="admBikesList"></div>
+            </div>
           </div>
+
           <div class="card">
-            <div class="card-label">SUPPORT-DESK</div>
-            <div class="card-title" style="margin: 4px 0 12px;">Alle Kunden-Tickets</div>
+            <div class="card-label">SUPPORT-DESK (TICKETS &amp; STATUS)</div>
+            <div class="card-title" style="margin: 4px 0 12px;">Alle Kunden-Tickets bearbeiten</div>
             <div id="admTicketsList"></div>
           </div>
         </div>
@@ -2053,9 +2104,10 @@
       }
 
       if (path === '/api/bootstrap') {
+        const isStaff = user.role === 'admin' || user.role === 'support';
         const userBikes = db.bikes.filter(b => b.user_id === user.id || user.role === 'admin');
         const userTrips = db.trips.filter(t => t.user_id === user.id || user.role === 'admin');
-        const userTickets = user.role === 'admin' ? db.tickets : db.tickets.filter(t => t.user_id === user.id);
+        const userTickets = isStaff ? db.tickets : db.tickets.filter(t => t.user_id === user.id);
         let mrr = 0;
         db.users.forEach(u => { if (u.plan === 'pro') mrr += 4.99; else if (u.plan === 'trackday') mrr += 9.99; });
         const totalKm = db.trips.reduce((s, t) => s + t.distance_km, 0);
@@ -2064,17 +2116,18 @@
           bikes: userBikes,
           trips: userTrips,
           tickets: userTickets,
-          admin: {
+          admin: isStaff ? {
             users: db.users,
+            allBikes: db.bikes,
             kpis: {
               totalUsers: db.users.length,
               totalTrips: db.trips.length,
               totalKm: Number(totalKm.toFixed(1)),
               openTickets: db.tickets.filter(t => t.status !== 'resolved').length,
-              mrrEuro: Number(mrr.toFixed(2))
+              mrrEuro: user.role === 'admin' ? Number(mrr.toFixed(2)) : 0
             },
             promos: db.promos
-          }
+          } : null
         };
       }
 
@@ -2178,7 +2231,8 @@
           if (body.status) tk.status = body.status;
           const ticketOwner = db.users.find(u => u.id === tk.user_id);
           const recipientEmail = tk.user_email || (ticketOwner ? ticketOwner.email : '');
-          saveCloudDB(db, user.role === 'admin' ? {
+          const isStaff = user.role === 'admin' || user.role === 'support';
+          saveCloudDB(db, (isStaff && body.message) ? {
             type: 'ticket_reply',
             ticketId: tk.id,
             toEmail: recipientEmail,
@@ -2191,10 +2245,28 @@
       }
 
       if (path === '/api/admin/user-update') {
+        if (user.role !== 'admin') {
+          throw new Error('Zugriff verweigert: Nur Administratoren dürfen Benutzerrollen oder Tarife ändern.');
+        }
         const target = db.users.find(u => u.id === Number(body.userId));
         if (target) {
           if (body.plan) target.plan = body.plan;
           if (body.role) target.role = body.role;
+          appendAuditLog(db, 'ADMIN_USER_UPDATED', user.email, `User #${target.id} (${target.email}) -> role=${target.role}, plan=${target.plan}`);
+          saveCloudDB(db);
+        }
+        return { ok: true };
+      }
+
+      if (path === '/api/admin/bike-delete') {
+        if (user.role !== 'admin') {
+          throw new Error('Zugriff verweigert: Nur Administratoren dürfen Benutzer-Fahrzeuge löschen.');
+        }
+        const bikeId = Number(body.bikeId);
+        const targetBike = db.bikes.find(b => b.id === bikeId);
+        if (targetBike) {
+          db.bikes = db.bikes.filter(b => b.id !== bikeId);
+          appendAuditLog(db, 'ADMIN_BIKE_DELETED', user.email, `Deleted bike #${bikeId} (${targetBike.name} / ${targetBike.plate})`);
           saveCloudDB(db);
         }
         return { ok: true };
@@ -2568,17 +2640,31 @@
         currentUser = data.user;
         appData = data;
 
+        const isAdmin = currentUser.role === 'admin';
+        const isSupport = currentUser.role === 'support';
+        const isStaff = isAdmin || isSupport;
+
         document.getElementById('viewAuth').classList.add('hide');
         document.getElementById('viewApp').classList.remove('hide');
         document.getElementById('bottomNav').classList.remove('hide');
         document.getElementById('btnLogout').classList.remove('hide');
-        document.getElementById('tabBtnAdmin').classList.toggle('hide', currentUser.role !== 'admin');
 
-        const roleBadge = document.getElementById('userRoleBadge');
-        if (roleBadge) {
-          roleBadge.textContent = currentUser.role === 'admin' ? 'ADMIN & FAHRER' : 'FAHRER';
-          roleBadge.className = currentUser.role === 'admin' ? 'tag accent' : 'tag';
-        }
+        const tabAdminBtn = document.getElementById('tabBtnAdmin');
+        tabAdminBtn.classList.toggle('hide', !isStaff);
+        const tabSpan = tabAdminBtn.querySelector('span');
+        if (tabSpan) tabSpan.textContent = isAdmin ? 'System' : 'Support';
+
+        // Hide all admin-only blocks when logged in as support
+        document.querySelectorAll('.admin-only-block').forEach(el => {
+          el.classList.toggle('hide', !isAdmin);
+        });
+
+        const admKicker = document.getElementById('admSecKicker');
+        const admTitle = document.getElementById('admSecTitle');
+        const admBadge = document.getElementById('admCloudBadge');
+        if (admKicker) admKicker.textContent = isAdmin ? '05 // SYSTEMADMINISTRATION & ECU-SIMULATOR' : '05 // TECHNISCHER KUNDENSUPPORT';
+        if (admTitle) admTitle.innerHTML = isAdmin ? 'System <em>Konsole</em>' : 'Support <em>Desk</em>';
+        if (admBadge) admBadge.textContent = isAdmin ? 'ADMIN VOLLZUGRIFF' : 'SUPPORT-MODUS (EINGESCHRÄNKT)';
 
         renderBikeSelect();
         renderTripsList();
@@ -3089,6 +3175,7 @@
               <button type="button" class="sec sm" onclick="resetBikeService(${b.id}, 'oil')">Ölwechsel quittieren</button>
               <button type="button" class="sec sm" onclick="resetBikeService(${b.id}, 'chain')">Kettenservice quittieren</button>
               <button type="button" class="sm" onclick="sendEspControl({ redline: ${b.redline_rpm} })">Auf Display übertragen</button>
+              ${currentUser && currentUser.role === 'admin' ? `<button type="button" class="danger sm" onclick="adminDeleteBike(${b.id})">Fahrzeug löschen</button>` : ''}
             </div>
           </div>
         `;
@@ -3277,7 +3364,15 @@
       renderDbStudio();
     }
 
+    function scrollDbTable(deltaX) {
+      const tblWrap = document.getElementById('dbStudioTableView');
+      if (tblWrap) {
+        tblWrap.scrollBy({ left: deltaX, behavior: 'smooth' });
+      }
+    }
+
     function deleteDbRecord(col, idOrCode) {
+      if (!currentUser || currentUser.role !== 'admin') return;
       const db = getCloudDB();
       if (!Array.isArray(db[col])) return;
       if (col === 'users' && Number(idOrCode) === 1) return; // Primary admin protected
@@ -3287,6 +3382,7 @@
     }
 
     function commitDbStudioJson() {
+      if (!currentUser || currentUser.role !== 'admin') return;
       try {
         const parsed = JSON.parse(document.getElementById('txtDbRawJson').value);
         if (!Array.isArray(parsed)) throw new Error('Collection muss ein JSON-Array sein');
@@ -3300,6 +3396,7 @@
     }
 
     function renderDbStudio() {
+      if (!currentUser || currentUser.role !== 'admin') return;
       const db = getCloudDB();
       const rawBytes = new Blob([JSON.stringify(db)]).size;
       const rows = Array.isArray(db[activeDbCollection]) ? db[activeDbCollection] : [];
@@ -3323,84 +3420,153 @@
       if (!tblWrap) return;
 
       if (filtered.length === 0) {
-        tblWrap.innerHTML = `<div class="num" style="padding: 18px; font-size: 12px; color: var(--text-secondary);">0 rows in collection "${activeDbCollection}".</div>`;
+        tblWrap.innerHTML = `<div class="num" style="padding: 18px; font-size: 12px; color: var(--text-secondary);">0 rows in collection "${escHtml(activeDbCollection)}".</div>`;
         return;
       }
 
       const cols = Object.keys(filtered[0]).filter(k => k !== 'telemetry' && k !== 'messages');
-      const headerHtml = cols.map(c => `<th style="text-align:left;padding:9px 12px;border-bottom:1px solid var(--border);font:600 10.5px var(--font-mono);color:var(--text-secondary);text-transform:uppercase;white-space:nowrap;">${c}</th>`).join('') +
-        `<th style="text-align:right;padding:9px 12px;border-bottom:1px solid var(--border);font:600 10.5px var(--font-mono);color:var(--text-secondary);">ACTION</th>`;
+      const headerHtml = cols.map(c => `<th style="text-align:left;padding:10px 14px;border-bottom:1px solid var(--border);font:600 10.5px var(--font-mono);color:var(--text-secondary);text-transform:uppercase;white-space:nowrap;">${escHtml(c)}</th>`).join('') +
+        `<th style="text-align:right;padding:10px 14px;border-bottom:1px solid var(--border);font:600 10.5px var(--font-mono);color:var(--text-secondary);white-space:nowrap;">ACTION</th>`;
 
       const bodyHtml = filtered.map(row => {
         const pk = row.id !== undefined ? row.id : row.code;
         const cells = cols.map(c => {
           let val = row[c];
           if (c === 'pw_hash' && typeof val === 'string') val = val.slice(0, 14) + '… (SHA-256)';
-          return `<td class="num" style="padding:9px 12px;border-bottom:1px solid var(--border);font-size:12px;white-space:nowrap;">${val !== undefined && val !== null ? String(val) : 'NULL'}</td>`;
+          return `<td class="num" style="padding:10px 14px;border-bottom:1px solid var(--border);font-size:12px;white-space:nowrap;">${val !== undefined && val !== null ? escHtml(val) : 'NULL'}</td>`;
         }).join('');
         const canDelete = !(activeDbCollection === 'users' && Number(pk) === 1);
-        return `<tr>${cells}<td style="padding:9px 12px;border-bottom:1px solid var(--border);text-align:right;">
-          ${canDelete ? `<button type="button" class="danger sm" style="padding:3px 8px;font-size:10.5px;" onclick="deleteDbRecord('${activeDbCollection}','${pk}')">DROP</button>` : `<span class="tag" style="font-size:9.5px;">SYSTEM PK</span>`}
+        return `<tr>${cells}<td style="padding:10px 14px;border-bottom:1px solid var(--border);text-align:right;white-space:nowrap;">
+          ${canDelete ? `<button type="button" class="danger sm" style="padding:3px 8px;font-size:10.5px;" onclick="deleteDbRecord('${escHtml(activeDbCollection)}','${escHtml(pk)}')">DROP</button>` : `<span class="tag" style="font-size:9.5px;">SYSTEM PK</span>`}
         </td></tr>`;
       }).join('');
 
-      tblWrap.innerHTML = `<table style="width:100%;border-collapse:collapse;"><thead><tr>${headerHtml}</tr></thead><tbody>${bodyHtml}</tbody></table>`;
+      tblWrap.innerHTML = `<table style="min-width:860px;width:max-content;border-collapse:collapse;"><thead><tr>${headerHtml}</tr></thead><tbody>${bodyHtml}</tbody></table>`;
     }
 
     function renderAdminCenter() {
       const adm = appData.admin;
       if (!adm) return;
+      const isAdmin = currentUser && currentUser.role === 'admin';
       const gInp = document.getElementById('inpGoogleCloudUrl');
       if (gInp) gInp.value = googleCloudUrl;
 
       const mailSel = document.getElementById('mailRecipient');
       if (mailSel) {
-        mailSel.innerHTML = `<option value="ALL">An alle registrierten Benutzer (${(adm.users || []).length} Konten)</option>` +
-          (adm.users || []).map(u => `<option value="${u.email}">${u.name} (${u.email})</option>`).join('');
+        mailSel.innerHTML = (isAdmin ? `<option value="ALL">An alle registrierten Benutzer (${(adm.users || []).length} Konten)</option>` : '') +
+          (adm.users || []).map(u => `<option value="${escHtml(u.email)}">${escHtml(u.name)} (${escHtml(u.email)})</option>`).join('');
       }
-      renderDbStudio();
+      if (isAdmin) renderDbStudio();
 
       document.getElementById('admKpiUsers').textContent = adm.kpis.totalUsers;
       document.getElementById('admKpiTrips').textContent = adm.kpis.totalTrips;
       document.getElementById('admKpiTickets').textContent = adm.kpis.openTickets;
-      document.getElementById('admKpiMrr').textContent = `${adm.kpis.mrrEuro.toFixed(2)} €`;
+      const mrrEl = document.getElementById('admKpiMrr');
+      if (mrrEl) mrrEl.textContent = `${adm.kpis.mrrEuro.toFixed(2)} €`;
 
+      // 1. Users & Role Assignment (Admin can edit Plan & Role [user/support/admin], Support has Read-Only view)
+      const roleLabels = { user: 'FAHRER', support: 'SUPPORT', admin: 'ADMIN' };
       document.getElementById('admUsersList').innerHTML = (adm.users || []).map(u => `
         <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--border); flex-wrap: wrap;">
           <div>
-            <div style="font-weight: 600; font-size: 13.5px;">${u.name}</div>
-            <div class="num" style="font-size: 11px; color: var(--text-secondary);">${u.email}</div>
+            <div style="font-weight: 600; font-size: 13.5px;">${escHtml(u.name)}</div>
+            <div class="num" style="font-size: 11px; color: var(--text-secondary);">${escHtml(u.email)}</div>
           </div>
-          <div style="display: flex; gap: 6px;">
-            <select style="width: auto; padding: 5px 8px; font-size: 11.5px;" onchange="adminUpdateUser(${u.id}, this.value, '${u.role}')">
-              <option value="free" ${u.plan === 'free' ? 'selected' : ''}>Basis</option>
-              <option value="pro" ${u.plan === 'pro' ? 'selected' : ''}>Pro</option>
-              <option value="trackday" ${u.plan === 'trackday' ? 'selected' : ''}>Trackday</option>
-            </select>
-            <select style="width: auto; padding: 5px 8px; font-size: 11.5px;" onchange="adminUpdateUser(${u.id}, '${u.plan}', this.value)">
-              <option value="user" ${u.role === 'user' ? 'selected' : ''}>Fahrer</option>
-              <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>Admin</option>
-            </select>
-          </div>
+          ${isAdmin ? `
+            <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+              <select style="width: auto; padding: 5px 8px; font-size: 11.5px;" onchange="adminUpdateUser(${u.id}, this.value, '${u.role}')">
+                <option value="free" ${u.plan === 'free' ? 'selected' : ''}>Basis</option>
+                <option value="pro" ${u.plan === 'pro' ? 'selected' : ''}>Pro</option>
+                <option value="trackday" ${u.plan === 'trackday' ? 'selected' : ''}>Trackday</option>
+              </select>
+              <select style="width: auto; padding: 5px 8px; font-size: 11.5px;" onchange="adminUpdateUser(${u.id}, '${u.plan}', this.value)">
+                <option value="user" ${u.role === 'user' ? 'selected' : ''}>Rolle: Fahrer</option>
+                <option value="support" ${u.role === 'support' ? 'selected' : ''}>Rolle: Support</option>
+                <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>Rolle: Admin</option>
+              </select>
+            </div>
+          ` : `
+            <div style="display: flex; gap: 6px;">
+              <span class="tag">${escHtml((u.plan || 'free').toUpperCase())}</span>
+              <span class="tag accent">${roleLabels[u.role] || 'FAHRER'}</span>
+            </div>
+          `}
         </div>
       `).join('');
 
-      document.getElementById('admTicketsList').innerHTML = (appData.tickets || []).map(t => `
-        <div style="padding: 10px 0; border-bottom: 1px solid var(--border);">
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <span style="font-weight: 600; font-size: 13px;">#${t.id} ${t.subject}</span>
-            <span class="tag">${t.status}</span>
+      // 2. All User Vehicles (Admin can delete any user's vehicle, Support has Read-Only view)
+      const allBikes = adm.allBikes || appData.bikes || [];
+      const bikesContainer = document.getElementById('admBikesList');
+      if (bikesContainer) {
+        if (allBikes.length === 0) {
+          bikesContainer.innerHTML = `<div style="color:var(--text-secondary);font-size:12.5px;">Keine Fahrzeuge registriert.</div>`;
+        } else {
+          bikesContainer.innerHTML = allBikes.map(b => {
+            const owner = (adm.users || []).find(u => u.id === b.user_id);
+            const ownerLabel = owner ? `${owner.name} (${owner.email})` : `User #${b.user_id}`;
+            return `
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--border); flex-wrap: wrap;">
+                <div>
+                  <div style="font-weight: 600; font-size: 13.5px;">${escHtml(b.name)} — ${escHtml(b.brand)} ${escHtml(b.model)} (${escHtml(b.plate)})</div>
+                  <div class="num" style="font-size: 11px; color: var(--text-secondary);">Eigentümer: ${escHtml(ownerLabel)} • ${Number(b.odo_km || 0).toFixed(0)} km • Redline ${b.redline_rpm} rpm</div>
+                </div>
+                ${isAdmin ? `
+                  <button type="button" class="danger sm" onclick="adminDeleteBike(${b.id})">Fahrzeug löschen</button>
+                ` : `
+                  <span class="tag num">#${b.id}</span>
+                `}
+              </div>
+            `;
+          }).join('');
+        }
+      }
+
+      // 3. Support Tickets Desk (Accessible to both Admin & Support role)
+      const allTickets = appData.tickets || [];
+      const tkContainer = document.getElementById('admTicketsList');
+      if (allTickets.length === 0) {
+        tkContainer.innerHTML = `<div style="color:var(--text-secondary);font-size:12.5px;">Keine offenen Kunden-Tickets.</div>`;
+      } else {
+        tkContainer.innerHTML = allTickets.map(t => `
+          <div style="padding: 12px 0; border-bottom: 1px solid var(--border);">
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;">
+              <div>
+                <span style="font-weight: 600; font-size: 13.5px;">#${t.id} ${escHtml(t.subject)}</span>
+                <div class="num" style="font-size: 11px; color: var(--text-secondary);">Kunde: ${escHtml(t.user_name || '')} (${escHtml(t.user_email || '')}) • ${escHtml(t.category || 'support')}</div>
+              </div>
+              <select style="width: auto; padding: 4px 8px; font-size: 11px;" onchange="adminUpdateTicketStatus(${t.id}, this.value)">
+                <option value="open" ${t.status === 'open' ? 'selected' : ''}>Offen</option>
+                <option value="answered" ${t.status === 'answered' ? 'selected' : ''}>Beantwortet</option>
+                <option value="resolved" ${t.status === 'resolved' ? 'selected' : ''}>Gelöst</option>
+              </select>
+            </div>
+            ${(t.messages || []).map(m => `
+              <div style="padding: 8px 10px; border-radius: 6px; background: var(--bg-subtle); border: 1px solid var(--border); margin-top: 6px; font-size: 12px;">
+                <div class="num" style="font-size: 10px; color: var(--text-secondary); margin-bottom: 2px;">${escHtml(m.sender_name)} (${escHtml((m.sender_role || '').toUpperCase())}) • ${escHtml(m.created_at)}</div>
+                <div style="white-space: pre-line;">${escHtml(m.message)}</div>
+              </div>
+            `).join('')}
+            <div style="display: flex; gap: 6px; margin-top: 8px;">
+              <input id="admReply_${t.id}" type="text" placeholder="Support-Antwort (wird auch per E-Mail gesendet)..." />
+              <button type="button" class="sm" onclick="adminReplyTicket(${t.id})">Antworten</button>
+            </div>
           </div>
-          <div style="display: flex; gap: 6px; margin-top: 8px;">
-            <input id="admReply_${t.id}" type="text" placeholder="Support-Antwort..." />
-            <button type="button" class="sm" onclick="adminReplyTicket(${t.id})">Antworten</button>
-          </div>
-        </div>
-      `).join('');
+        `).join('');
+      }
     }
 
     async function adminUpdateUser(userId, plan, role) {
       await apiCall('/api/admin/user-update', 'POST', { userId, plan, role });
+      await loadBootstrap();
+    }
+
+    async function adminDeleteBike(bikeId) {
+      await apiCall('/api/admin/bike-delete', 'POST', { bikeId });
+      await loadBootstrap();
+    }
+
+    async function adminUpdateTicketStatus(ticketId, status) {
+      await apiCall('/api/tickets/reply', 'POST', { ticketId, status });
       await loadBootstrap();
     }
 
