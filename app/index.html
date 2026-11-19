@@ -1837,6 +1837,19 @@
             esp_ip: '192.168.4.1',
             email_verified: true,
             created_at: new Date().toISOString().slice(0, 10)
+          },
+          {
+            id: 2,
+            name: 'Timo',
+            email: 'timo.kaufm@gmail.com',
+            username: 'timo.kaufm',
+            pw_hash: 'c9cda8c700e95ece4113961f0727316c98f79f9052bd6ce7b4566a5df1330434',
+            role: 'admin',
+            plan: 'trackday',
+            billing_cycle: 'yearly',
+            esp_ip: '192.168.4.1',
+            email_verified: true,
+            created_at: new Date().toISOString().slice(0, 10)
           }
         ],
         bikes: [],
@@ -1930,9 +1943,11 @@
         return { iosUrl: isLocal ? PUBLIC_CLOUD_APP_URL : window.location.href };
       }
 
+      const MASTER_ADMIN_EMAILS = ['vbdisplay.cloud@gmail.com', 'timo.kaufm@gmail.com'];
+
       if (path === '/api/auth/check-email') {
         const email = String((body && body.email) || '').trim().toLowerCase();
-        if (db.users.some(u => u.email.toLowerCase() === email)) {
+        if (!MASTER_ADMIN_EMAILS.includes(email) && db.users.some(u => u.email.toLowerCase() === email)) {
           throw new Error('Für diese E-Mail-Adresse existiert bereits ein verifiziertes Konto.');
         }
         return { ok: true };
@@ -1948,6 +1963,10 @@
           saveCloudDB(db);
           throw new Error('Anmeldedaten ungültig. Bitte prüfe Benutzername/E-Mail und Passwort.');
         }
+        if (MASTER_ADMIN_EMAILS.includes(found.email.toLowerCase())) {
+          found.role = 'admin';
+          found.plan = 'trackday';
+        }
         if (found.role !== 'admin' && found.email_verified === false) {
           throw new Error('E-Mail-Adresse wurde noch nicht bestätigt.');
         }
@@ -1957,7 +1976,7 @@
         const safeUser = Object.assign({}, found);
         delete safeUser.pw_hash;
         const token = found.role === 'admin'
-          ? `cloud_tok_1_admin`
+          ? `cloud_tok_${found.id}_admin`
           : `cloud_tok_${found.id}_ep${epoch}`;
         return { token, user: safeUser };
       }
@@ -1971,39 +1990,55 @@
         if (!name || !email || !pwHash || !body.emailVerified) {
           throw new Error('Kontoerstellung abgelehnt: E-Mail-Verifizierung erforderlich.');
         }
-        if (db.users.some(u => u.email.toLowerCase() === email)) {
+        const isMasterAdmin = MASTER_ADMIN_EMAILS.includes(email);
+        const existingUser = db.users.find(u => u.email.toLowerCase() === email);
+        if (existingUser && !isMasterAdmin) {
           throw new Error('Für diese E-Mail-Adresse existiert bereits ein Konto.');
         }
 
-        const newId = db.users.reduce((m, u) => Math.max(m, u.id), 0) + 1;
-        const newUser = {
-          id: newId, name, email, username, pw_hash: pwHash,
-          role: 'user', plan: 'pro', billing_cycle: 'monthly',
-          esp_ip: '192.168.4.1', email_verified: true, created_at: nowStr
-        };
-        db.users.push(newUser);
+        let targetUser = existingUser;
+        if (targetUser) {
+          targetUser.name = name;
+          targetUser.pw_hash = pwHash;
+          targetUser.role = 'admin';
+          targetUser.plan = 'trackday';
+          targetUser.email_verified = true;
+        } else {
+          const newId = db.users.reduce((m, u) => Math.max(m, u.id), 0) + 1;
+          targetUser = {
+            id: newId, name, email, username, pw_hash: pwHash,
+            role: isMasterAdmin ? 'admin' : 'user',
+            plan: isMasterAdmin ? 'trackday' : 'pro',
+            billing_cycle: isMasterAdmin ? 'yearly' : 'monthly',
+            esp_ip: '192.168.4.1', email_verified: true, created_at: nowStr
+          };
+          db.users.push(targetUser);
+        }
 
         const bikeId = db.bikes.reduce((m, b) => Math.max(m, b.id), 0) + 1;
         const parts = bikeModel.split(' ');
         db.bikes.push({
-          id: bikeId, user_id: newId, name: bikeModel,
+          id: bikeId, user_id: targetUser.id, name: bikeModel,
           brand: parts[0] || 'Custom', model: parts.slice(1).join(' ') || bikeModel,
-          year: 2025, plate: 'WI-VB ' + (20 + newId), odo_km: 0.0, redline_rpm: 9500,
+          year: 2025, plate: 'WI-VB ' + (20 + targetUser.id), odo_km: 0.0, redline_rpm: 9500,
           oil_interval_km: 6000, last_oil_km: 0.0, chain_interval_km: 800, last_chain_km: 0.0,
           tuv_date: '2027-06', battery_alert_v: 11.8
         });
 
-        appendAuditLog(db, 'ACCOUNT_VERIFIED_CREATED', email, `Verified email & created user #${newId}`);
+        appendAuditLog(db, 'ACCOUNT_VERIFIED_CREATED', email, `Verified email & activated user #${targetUser.id} (${targetUser.role})`);
         saveCloudDB(db, {
           type: 'register',
           userName: name,
           userEmail: email,
           bikeModel: bikeModel
         });
-        localStorage.setItem('vb_cloud_uid', String(newId));
-        const safeUser = Object.assign({}, newUser);
+        localStorage.setItem('vb_cloud_uid', String(targetUser.id));
+        const safeUser = Object.assign({}, targetUser);
         delete safeUser.pw_hash;
-        return { token: `cloud_tok_${newId}_ep${epoch}`, user: safeUser };
+        const token = targetUser.role === 'admin'
+          ? `cloud_tok_${targetUser.id}_admin`
+          : `cloud_tok_${targetUser.id}_ep${epoch}`;
+        return { token, user: safeUser };
       }
 
       // Session Validation Gate: Ensure user still exists and non-admin session_epoch matches
