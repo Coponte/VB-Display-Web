@@ -78,8 +78,8 @@
 
     :root {
       --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", sans-serif;
-      --font-serif: "Instrument Serif", "Playfair Display", "New York", Georgia, serif;
-      --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      --font-serif: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", sans-serif;
+      --font-mono: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", sans-serif;
       --safe-top: env(safe-area-inset-top, 0px);
       --safe-bottom: env(safe-area-inset-bottom, 0px);
     }
@@ -2444,6 +2444,20 @@
         return { ok: true };
       }
 
+      if (path === '/api/tickets/delete') {
+        const tid = Number(body.ticketId);
+        const tk = db.tickets.find(t => t.id === tid);
+        if (!tk) return { ok: true };
+        const isStaff = user.role === 'admin' || user.role === 'support';
+        if (!isStaff && tk.user_id !== user.id) {
+          throw new Error('Zugriff verweigert: Du kannst nur eigene Tickets löschen.');
+        }
+        db.tickets = db.tickets.filter(t => t.id !== tid);
+        appendAuditLog(db, 'TICKET_DELETED', user.email, `Deleted ticket #${tid} (${tk.subject})`);
+        saveCloudDB(db);
+        return { ok: true };
+      }
+
       if (path === '/api/admin/user-update') {
         if (user.role !== 'admin') {
           throw new Error('Zugriff verweigert: Nur Administratoren dürfen Benutzerrollen oder Tarife ändern.');
@@ -3579,9 +3593,12 @@
 
       container.innerHTML = tickets.map(t => `
         <div style="padding: 14px; border-radius: 10px; background: var(--bg-subtle); border: 1px solid var(--border); margin-bottom: 10px;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px;">
             <div style="font-weight: 600; font-size: 14px;">#${escHtml(t.id)} — ${escHtml(t.subject)}</div>
-            <span class="tag ${t.status === 'answered' ? 'green' : 'amber'}">${escHtml(t.status)}</span>
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span class="tag ${t.status === 'answered' ? 'green' : 'amber'}">${escHtml(t.status)}</span>
+              <button type="button" class="danger sm" style="padding: 4px 8px; font-size: 11px;" onclick="deleteTicket(${t.id})">Löschen</button>
+            </div>
           </div>
           ${(t.messages || []).map(m => `
             <div style="padding: 9px 11px; border-radius: 8px; background: var(--bg-elevated); border: 1px solid var(--border); margin-top: 6px; font-size: 12.5px;">
@@ -3839,11 +3856,14 @@
                     Kunde: ${escHtml(t.user_name || '')} (${escHtml(t.user_email || '')}) • ${escHtml(t.category || 'support')} • Prio: ${escHtml(t.priority || 'normal')}
                   </div>
                 </div>
-                <select style="width: auto; padding: 5px 10px; font-size: 11.5px;" onchange="adminUpdateTicketStatus(${t.id}, this.value)">
-                  <option value="open" ${t.status === 'open' ? 'selected' : ''}>Status: Offen</option>
-                  <option value="answered" ${t.status === 'answered' ? 'selected' : ''}>Status: Beantwortet</option>
-                  <option value="resolved" ${t.status === 'resolved' ? 'selected' : ''}>Status: Gelöst</option>
-                </select>
+                <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                  <select style="width: auto; padding: 5px 10px; font-size: 11.5px;" onchange="adminUpdateTicketStatus(${t.id}, this.value)">
+                    <option value="open" ${t.status === 'open' ? 'selected' : ''}>Status: Offen</option>
+                    <option value="answered" ${t.status === 'answered' ? 'selected' : ''}>Status: Beantwortet</option>
+                    <option value="resolved" ${t.status === 'resolved' ? 'selected' : ''}>Status: Gelöst</option>
+                  </select>
+                  <button type="button" class="danger sm" onclick="deleteTicket(${t.id})">Ticket löschen</button>
+                </div>
               </div>
               ${(t.messages || []).map(m => `
                 <div style="padding: 9px 11px; border-radius: 8px; background: var(--bg-subtle); border: 1px solid var(--border); margin-top: 8px; font-size: 12.5px;">
@@ -4021,6 +4041,11 @@
       const inp = document.getElementById('admReply_' + ticketId);
       if (!inp || !inp.value.trim()) return;
       await apiCall('/api/tickets/reply', 'POST', { ticketId, message: inp.value.trim(), status: 'answered' });
+      await loadBootstrap();
+    }
+
+    async function deleteTicket(ticketId) {
+      await apiCall('/api/tickets/delete', 'POST', { ticketId });
       await loadBootstrap();
     }
 
