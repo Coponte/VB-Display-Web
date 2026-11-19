@@ -804,10 +804,53 @@
             <input id="loginIdent" type="text" required autocomplete="username" placeholder="name@domain.de" />
           </div>
           <div class="field">
-            <label for="loginPw">Passwort</label>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px;">
+              <label for="loginPw" style="margin-bottom: 0;">Passwort</label>
+              <button type="button" class="ghost sm" style="padding: 2px 6px; font-size: 11px; border: none; color: var(--accent);" onclick="openPasswordResetFlow()">Passwort vergessen?</button>
+            </div>
             <input id="loginPw" type="password" required autocomplete="current-password" placeholder="••••••••" />
           </div>
           <button type="submit" id="btnLoginSubmit" style="width: 100%; margin-top: 6px;">Sicher anmelden</button>
+        </form>
+
+        <!-- Password Reset Step 1: Request 6-Digit Email Code -->
+        <form id="formResetStep1" class="hide" onsubmit="handleResetRequestCode(event)">
+          <div style="padding: 13px; border-radius: 10px; background: var(--bg-subtle); border: 1px solid var(--border); margin-bottom: 14px;">
+            <div class="card-label" style="color: var(--accent); margin-bottom: 4px;">PASSWORT ZURÜCKSETZEN // SCHRITT 1</div>
+            <p style="font-size: 12.5px; color: var(--text-secondary); line-height: 1.5;">
+              Gib deine registrierte E-Mail-Adresse ein. Wir senden dir einen 6-stelligen Sicherheitscode zum Zurücksetzen deines Passworts.
+            </p>
+          </div>
+          <div class="field">
+            <label for="inpResetEmail">Registrierte E-Mail-Adresse</label>
+            <input id="inpResetEmail" type="email" required autocomplete="email" placeholder="name@domain.de" />
+          </div>
+          <button type="submit" id="btnResetReqSubmit" style="width: 100%; margin-top: 4px;">Sicherheitscode per E-Mail senden</button>
+          <button type="button" class="ghost sm" style="width: 100%; margin-top: 8px;" onclick="switchAuthMode('login')">Zurück zum Login</button>
+        </form>
+
+        <!-- Password Reset Step 2: Verify Code & Set New Password -->
+        <form id="formResetStep2" class="hide" onsubmit="handleResetConfirmNewPw(event)">
+          <div style="padding: 13px; border-radius: 10px; background: var(--bg-subtle); border: 1px solid var(--border); margin-bottom: 14px;">
+            <div class="card-label" style="color: var(--accent); margin-bottom: 4px;">PASSWORT ZURÜCKSETZEN // SCHRITT 2</div>
+            <p style="font-size: 12.5px; color: var(--text-secondary); line-height: 1.5;">
+              Code gesendet an <b id="lblResetTargetEmail" class="num" style="color: var(--text);"></b>. Gib den 6-stelligen Code und dein neues Passwort ein.
+            </p>
+          </div>
+          <div class="field">
+            <label for="inpResetOtpCode">6-stelliger E-Mail-Sicherheitscode</label>
+            <input id="inpResetOtpCode" type="text" class="num" required minlength="6" maxlength="6" inputmode="numeric" autocomplete="one-time-code" placeholder="000000" style="font-size: 19px; letter-spacing: 0.25em; text-align: center; font-weight: 700;" />
+          </div>
+          <div class="field">
+            <label for="inpResetNewPw">Neues Passwort (min. 8 Zeichen, Buchstaben &amp; Zahl)</label>
+            <input id="inpResetNewPw" type="password" required minlength="8" maxlength="128" autocomplete="new-password" placeholder="Neues sicheres Passwort" />
+          </div>
+          <div class="field">
+            <label for="inpResetNewPw2">Neues Passwort wiederholen</label>
+            <input id="inpResetNewPw2" type="password" required minlength="8" maxlength="128" autocomplete="new-password" placeholder="Passwort bestätigen" />
+          </div>
+          <button type="submit" style="width: 100%; margin-top: 6px;">Passwort speichern &amp; anmelden</button>
+          <button type="button" class="ghost sm" style="width: 100%; margin-top: 8px;" onclick="switchAuthMode('login')">Abbrechen</button>
         </form>
 
         <!-- Step 1: Registration Form (With Multi-Layer Anti-Bot & Password Policy) -->
@@ -1181,128 +1224,245 @@
       </section>
 
       <!-- -----------------------------------------------------------------
-           04 // SUBSCRIPTION & SUPPORT DESK
+           04 // SUBSCRIPTION & CUSTOMER HELP (CLEAN SUB-TABBED WORKSPACE)
            ----------------------------------------------------------------- -->
       <section id="viewSubSupport" class="hide">
         <div class="sec-head">
           <div>
-            <div class="sec-kicker">04 // LIZENZMODELL &amp; TECHNISCHER SUPPORT</div>
+            <div class="sec-kicker">04 // LIZENZMODELL &amp; KUNDENHILFE</div>
             <h1 class="sec-title">Tarif &amp; <em>Direkthilfe</em></h1>
           </div>
-          <span id="subCurrentBadge" class="tag accent">TARIF: BASIS</span>
-        </div>
-
-        <!-- 3 Subscription Tiers -->
-        <div class="grid-3" style="margin-bottom: 16px;">
-          <div class="card" style="margin-bottom: 0;">
-            <div class="card-label">STUFE 01</div>
-            <div class="card-title" style="margin-top: 4px;">Basis</div>
-            <div class="stat-value" style="margin: 10px 0;">0,00 € <span style="font-size: 12px; color: var(--text-secondary);">/ Monat</span></div>
-            <p style="font-size: 12.5px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 14px;">
-              Live-Cockpit, WLAN-Direktverbindung zum Display und die letzten 5 Fahrten im Cloud-Speicher.
-            </p>
-            <button type="button" id="btnPlanFree" class="sec" style="width: 100%;" onclick="changeSubscription('free')">Basis wählen</button>
-          </div>
-
-          <div class="card" style="margin-bottom: 0; border-color: var(--accent);">
-            <div class="card-label" style="color: var(--accent);">STUFE 02 // EMPFOHLEN</div>
-            <div class="card-title" style="margin-top: 4px;">Telemetrie Pro</div>
-            <div class="stat-value" style="margin: 10px 0;">4,99 € <span style="font-size: 12px; color: var(--text-secondary);">/ Monat</span></div>
-            <p style="font-size: 12.5px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 14px;">
-              Unbegrenzte Satelliten-Touren, Schräglagen- &amp; Drehzahlanalyse, Wartungsassistent und GPX-Export.
-            </p>
-            <button type="button" id="btnPlanPro" style="width: 100%;" onclick="changeSubscription('pro')">Pro aktivieren</button>
-          </div>
-
-          <div class="card" style="margin-bottom: 0;">
-            <div class="card-label">STUFE 03 // MOTORSPORT</div>
-            <div class="card-title" style="margin-top: 4px;">Trackday Ultimate</div>
-            <div class="stat-value" style="margin: 10px 0;">9,99 € <span style="font-size: 12px; color: var(--text-secondary);">/ Monat</span></div>
-            <p style="font-size: 12.5px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 14px;">
-              10 Hz Rohdaten-Telemetrie, Sektorzeiten, G-Force-Kurven, mehrere Fahrzeuge &amp; Priority-Hardware-Support.
-            </p>
-            <button type="button" id="btnPlanTrack" class="sec" style="width: 100%;" onclick="changeSubscription('trackday')">Ultimate aktivieren</button>
+          <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+            <span id="subCurrentBadge" class="tag accent">TARIF: BASIS</span>
+            <div class="seg-group">
+              <button type="button" id="btnUserSubTabPlans" class="seg-btn active" onclick="switchUserSubView('plans')">Tarif &amp; Lizenzcode</button>
+              <button type="button" id="btnUserSubTabTickets" class="seg-btn" onclick="switchUserSubView('tickets')">Meine Support-Tickets</button>
+            </div>
           </div>
         </div>
 
-        <!-- Promo Code & Support Tickets -->
-        <div class="grid-2">
-          <!-- Promo Code -->
-          <div>
-            <div class="card">
-              <div class="card-label">PROJEKTLIZENZ / GUTSCHEINCODE</div>
-              <div class="card-title" style="margin: 4px 0 10px;">Freischaltcode einlösen</div>
-              <div style="display: flex; gap: 8px;">
-                <input id="inpPromoCode" type="text" class="num" placeholder="Lizenzcode eingeben" />
-                <button type="button" onclick="redeemPromoCode()">Einlösen</button>
-              </div>
-              <div id="promoMsg" style="font-size: 12px; color: var(--text-secondary); margin-top: 8px;">
-                Gib einen gültigen Projekt- oder Gutscheincode ein, um deinen Tarif freizuschalten.
-              </div>
+        <!-- Sub-View A: Subscription Plans & Promo Code -->
+        <div id="userSubViewPlans">
+          <div class="grid-3" style="margin-bottom: 14px;">
+            <div class="card" style="margin-bottom: 0;">
+              <div class="card-label">STUFE 01</div>
+              <div class="card-title" style="margin-top: 4px;">Basis</div>
+              <div class="stat-value" style="margin: 10px 0;">0,00 € <span style="font-size: 12px; color: var(--text-secondary);">/ Monat</span></div>
+              <p style="font-size: 12.5px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 14px;">
+                Live-Cockpit, WLAN-Direktverbindung zum Display und die letzten 5 Fahrten im Cloud-Speicher.
+              </p>
+              <button type="button" id="btnPlanFree" class="sec" style="width: 100%;" onclick="changeSubscription('free')">Basis wählen</button>
+            </div>
+
+            <div class="card" style="margin-bottom: 0; border-color: var(--accent);">
+              <div class="card-label" style="color: var(--accent);">STUFE 02 // EMPFOHLEN</div>
+              <div class="card-title" style="margin-top: 4px;">Telemetrie Pro</div>
+              <div class="stat-value" style="margin: 10px 0;">4,99 € <span style="font-size: 12px; color: var(--text-secondary);">/ Monat</span></div>
+              <p style="font-size: 12.5px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 14px;">
+                Unbegrenzte Satelliten-Touren, Schräglagen- &amp; Drehzahlanalyse, Wartungsassistent und GPX-Export.
+              </p>
+              <button type="button" id="btnPlanPro" style="width: 100%;" onclick="changeSubscription('pro')">Pro aktivieren</button>
+            </div>
+
+            <div class="card" style="margin-bottom: 0;">
+              <div class="card-label">STUFE 03 // MOTORSPORT</div>
+              <div class="card-title" style="margin-top: 4px;">Trackday Ultimate</div>
+              <div class="stat-value" style="margin: 10px 0;">9,99 € <span style="font-size: 12px; color: var(--text-secondary);">/ Monat</span></div>
+              <p style="font-size: 12.5px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 14px;">
+                10 Hz Rohdaten-Telemetrie, Sektorzeiten, G-Force-Kurven, mehrere Fahrzeuge &amp; Priority-Hardware-Support.
+              </p>
+              <button type="button" id="btnPlanTrack" class="sec" style="width: 100%;" onclick="changeSubscription('trackday')">Ultimate aktivieren</button>
             </div>
           </div>
 
-          <!-- Support Ticket Creation -->
           <div class="card">
-            <div class="card-label">TECHNISCHER KUNDENDIENST</div>
-            <div class="card-title" style="margin: 4px 0 12px;">Support-Anfrage erstellen</div>
-            <form onsubmit="handleCreateTicket(event)">
-              <div class="field">
-                <label for="tkSubject">Betreff</label>
-                <input id="tkSubject" type="text" required placeholder="z. B. Kalibrierung Drehzahleingang J2" />
+            <div class="card-header" style="margin-bottom: 8px;">
+              <div>
+                <div class="card-label">PROJEKTLIZENZ / GUTSCHEINCODE</div>
+                <div class="card-title">Freischaltcode einlösen</div>
               </div>
-              <div class="grid-2">
-                <div class="field">
-                  <label for="tkCat">Bereich</label>
-                  <select id="tkCat">
-                    <option value="hardware">Hardware / PCB / Display</option>
-                    <option value="app">iOS App &amp; Cloud Sync</option>
-                    <option value="billing">Abo &amp; Lizenz</option>
-                  </select>
-                </div>
-                <div class="field">
-                  <label for="tkPrio">Priorität</label>
-                  <select id="tkPrio">
-                    <option value="normal">Standard</option>
-                    <option value="high">Hoch</option>
-                  </select>
-                </div>
-              </div>
-              <div class="field">
-                <label for="tkMsg">Fehlerbeschreibung</label>
-                <textarea id="tkMsg" rows="3" required placeholder="Beschreibe dein Anliegen..."></textarea>
-              </div>
-              <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-secondary); margin-bottom: 12px;">
-                <input id="tkAttachSnap" type="checkbox" checked />
-                <span>Aktuellen ECU-Telemetrie-Snapshot automatisch anhängen</span>
-              </label>
-              <button type="submit" style="width: 100%;">Ticket absenden</button>
-            </form>
+            </div>
+            <div style="display: flex; gap: 8px; max-width: 460px;">
+              <input id="inpPromoCode" type="text" class="num" placeholder="Lizenzcode eingeben" />
+              <button type="button" onclick="redeemPromoCode()">Einlösen</button>
+            </div>
+            <div id="promoMsg" style="font-size: 12px; color: var(--text-secondary); margin-top: 8px;">
+              Gib einen gültigen Projekt- oder Gutscheincode ein, um deinen Tarif freizuschalten.
+            </div>
           </div>
         </div>
 
-        <!-- Existing Tickets -->
-        <div class="card">
-          <div class="card-label">KOMMUNIKATIONSVERLAUF</div>
-          <div class="card-title" style="margin: 4px 0 12px;">Meine Support-Tickets</div>
-          <div id="userTicketsList"></div>
+        <!-- Sub-View B: Customer's Own Support Tickets -->
+        <div id="userSubViewTickets" class="hide">
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-label">NEUE ANFRAGE</div>
+              <div class="card-title" style="margin: 4px 0 12px;">Support-Ticket erstellen</div>
+              <form onsubmit="handleCreateTicket(event)">
+                <div class="field">
+                  <label for="tkSubject">Betreff</label>
+                  <input id="tkSubject" type="text" required placeholder="z. B. Kalibrierung Drehzahleingang J2" />
+                </div>
+                <div class="grid-2">
+                  <div class="field">
+                    <label for="tkCat">Bereich</label>
+                    <select id="tkCat">
+                      <option value="hardware">Hardware / PCB / Display</option>
+                      <option value="app">iOS App &amp; Cloud Sync</option>
+                      <option value="billing">Abo &amp; Lizenz</option>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label for="tkPrio">Priorität</label>
+                    <select id="tkPrio">
+                      <option value="normal">Standard</option>
+                      <option value="high">Hoch</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="field">
+                  <label for="tkMsg">Fehlerbeschreibung</label>
+                  <textarea id="tkMsg" rows="3" required placeholder="Beschreibe dein Anliegen..."></textarea>
+                </div>
+                <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-secondary); margin-bottom: 12px;">
+                  <input id="tkAttachSnap" type="checkbox" checked />
+                  <span>Aktuellen ECU-Telemetrie-Snapshot automatisch anhängen</span>
+                </label>
+                <button type="submit" style="width: 100%;">Ticket absenden</button>
+              </form>
+            </div>
+
+            <div class="card">
+              <div class="card-label">KOMMUNIKATIONSVERLAUF</div>
+              <div class="card-title" style="margin: 4px 0 12px;">Meine bisherigen Tickets</div>
+              <div id="userTicketsList"></div>
+            </div>
+          </div>
         </div>
       </section>
 
       <!-- -----------------------------------------------------------------
-           05 // ADMIN SYSTEM, SUPPORT DESK & HARDWARE SIMULATOR
+           05 // DEDICATED SUPPORT DESK (OWN AREA FOR SUPPORT ROLE & ADMIN)
+           ----------------------------------------------------------------- -->
+      <section id="viewSupportDesk" class="hide">
+        <div class="sec-head">
+          <div>
+            <div class="sec-kicker">05 // TECHNISCHER KUNDENSUPPORT &amp; TICKET-ZENTRALE</div>
+            <h1 class="sec-title">Support <em>Desk</em></h1>
+          </div>
+          <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+            <span class="tag accent">SUPPORT-TEAM BEREICH</span>
+            <div class="seg-group">
+              <button type="button" id="btnSupSubTickets" class="seg-btn active" onclick="switchSupportSubView('tickets')">Ticket-Eingang</button>
+              <button type="button" id="btnSupSubCustomers" class="seg-btn" onclick="switchSupportSubView('customers')">Kunden &amp; Fahrzeuge</button>
+              <button type="button" id="btnSupSubMail" class="seg-btn" onclick="switchSupportSubView('mail')">Support-Mail senden</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Support KPIs -->
+        <div class="grid-3" style="margin-bottom: 14px;">
+          <div class="stat-box">
+            <div class="stat-label">OFFENE TICKETS</div>
+            <div id="supKpiOpen" class="stat-value">0</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">BEANTWORTET / GELÖST</div>
+            <div id="supKpiResolved" class="stat-value">0</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">REGISTRIERTE KUNDEN</div>
+            <div id="supKpiCustomers" class="stat-value">0</div>
+          </div>
+        </div>
+
+        <!-- Support Sub-View 1: Ticket Queue & Replies -->
+        <div id="supViewTickets">
+          <div class="card">
+            <div class="card-header" style="flex-wrap: wrap;">
+              <div>
+                <div class="card-label">KUNDENANFRAGEN</div>
+                <div class="card-title">Support-Tickets bearbeiten</div>
+              </div>
+              <div class="seg-group">
+                <button type="button" class="seg-btn active" data-tkfilter="all" onclick="setSupportTicketFilter('all')">Alle</button>
+                <button type="button" class="seg-btn" data-tkfilter="open" onclick="setSupportTicketFilter('open')">Offen</button>
+                <button type="button" class="seg-btn" data-tkfilter="answered" onclick="setSupportTicketFilter('answered')">Beantwortet</button>
+                <button type="button" class="seg-btn" data-tkfilter="resolved" onclick="setSupportTicketFilter('resolved')">Gelöst</button>
+              </div>
+            </div>
+            <div id="supTicketsContainer"></div>
+          </div>
+        </div>
+
+        <!-- Support Sub-View 2: Read-Only Customer & Vehicle Diagnostics -->
+        <div id="supViewCustomers" class="hide">
+          <div class="card">
+            <div class="card-header" style="flex-wrap: wrap;">
+              <div>
+                <div class="card-label">KUNDEN- &amp; FAHRZEUGDIAGNOSE (READ-ONLY)</div>
+                <div class="card-title">Kundenkonten &amp; hinterlegte Motorräder</div>
+              </div>
+              <input id="inpSupCustSearch" type="text" class="num" style="max-width: 260px; padding: 6px 10px; font-size: 12px;" placeholder="Name, E-Mail oder Kennzeichen..." oninput="renderSupportDesk()" />
+            </div>
+            <div id="supCustomersContainer"></div>
+          </div>
+        </div>
+
+        <!-- Support Sub-View 3: Direct Support Email to Customer -->
+        <div id="supViewMail" class="hide">
+          <div class="card" style="max-width: 640px;">
+            <div class="card-header">
+              <div>
+                <div class="card-label">DIREKTNACHRICHT PER E-MAIL</div>
+                <div class="card-title">Support-E-Mail an Kunden senden</div>
+              </div>
+              <span class="tag green num">vbdisplay.cloud@gmail.com</span>
+            </div>
+            <form onsubmit="handleSupportDirectEmail(event)">
+              <div class="field">
+                <label for="supMailRecipient">Kunde auswählen</label>
+                <select id="supMailRecipient"></select>
+              </div>
+              <div class="field">
+                <label for="supMailSubject">Betreff</label>
+                <input id="supMailSubject" type="text" required placeholder="z. B. Rückfrage zu deiner Support-Anfrage" />
+              </div>
+              <div class="field">
+                <label for="supMailBody">Nachricht</label>
+                <textarea id="supMailBody" rows="4" required placeholder="Deine Support-Antwort an den Kunden..."></textarea>
+              </div>
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+                <span id="supMailStatusMsg" style="font-size: 12px; color: var(--text-secondary);">Wird als offizielle VB Connect Support-Mail zugestellt.</span>
+                <button type="submit">Support-Mail absenden</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      <!-- -----------------------------------------------------------------
+           06 // ADMIN SYSTEM CONSOLE (ADMIN ONLY — CLEAN 4-TAB ARCHITECTURE)
            ----------------------------------------------------------------- -->
       <section id="viewAdmin" class="hide">
         <div class="sec-head">
           <div>
-            <div id="admSecKicker" class="sec-kicker">05 // SYSTEMADMINISTRATION &amp; ECU-SIMULATOR</div>
+            <div id="admSecKicker" class="sec-kicker">06 // SYSTEMADMINISTRATION &amp; CLOUD-STEUERUNG</div>
             <h1 id="admSecTitle" class="sec-title">System <em>Konsole</em></h1>
           </div>
-          <span id="admCloudBadge" class="tag green">CLOUD ENGINE AKTIV</span>
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <span id="admCloudBadge" class="tag green">ADMIN VOLLZUGRIFF</span>
+            <div class="seg-group" style="overflow-x: auto; max-width: 100%;">
+              <button type="button" id="btnAdmTabAccounts" class="seg-btn active" onclick="switchAdminSubView('accounts')">Konten &amp; Fahrzeuge</button>
+              <button type="button" id="btnAdmTabDb" class="seg-btn" onclick="switchAdminSubView('db')">Datenbank (DB Studio)</button>
+              <button type="button" id="btnAdmTabSim" class="seg-btn" onclick="switchAdminSubView('sim')">ECU-Simulator</button>
+              <button type="button" id="btnAdmTabCloud" class="seg-btn" onclick="switchAdminSubView('cloud')">Cloud &amp; Rundmail</button>
+            </div>
+          </div>
         </div>
 
         <!-- Platform KPIs -->
-        <div class="grid-4" style="margin-bottom: 14px;">
+        <div class="grid-4" style="margin-bottom: 16px;">
           <div class="stat-box">
             <div class="stat-label">REGISTRIERTE KONTEN</div>
             <div id="admKpiUsers" class="stat-value">0</div>
@@ -1315,200 +1475,202 @@
             <div class="stat-label">OFFENE TICKETS</div>
             <div id="admKpiTickets" class="stat-value">0</div>
           </div>
-          <div class="stat-box admin-only-block">
+          <div class="stat-box">
             <div class="stat-label">ABO-UMSATZ (MRR)</div>
             <div id="admKpiMrr" class="stat-value">0,00 €</div>
           </div>
         </div>
 
-        <!-- Cloud Vault Connection (Admin Only) & Project Email System (Admin + Support) -->
-        <div class="grid-2">
-          <div class="card admin-only-block">
-            <div class="card-header">
-              <div>
-                <div class="card-label">CLOUD DATABASE ENGINE (ACID VAULT)</div>
-                <div class="card-title">Verschlüsselter Cloud-Datenspeicher</div>
+        <!-- ADMIN SUB-VIEW 1: ACCOUNTS, ROLES & USER VEHICLES -->
+        <div id="admSubViewAccounts">
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-label">KONTEN &amp; ROLLENVERWALTUNG</div>
+                  <div class="card-title">Registrierte Benutzer</div>
+                </div>
+                <button type="button" class="danger sm" onclick="revokeAllNonAdminSessions(false)">Alle abmelden (außer Admin)</button>
               </div>
-              <button type="button" class="sec sm" onclick="pullFromGoogleCloud()">Cloud Sync</button>
+              <div id="admUsersList"></div>
             </div>
-            <p style="font-size: 12.5px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 12px;">
-              Isolierter NoSQL-Dokumentenspeicher mit <span class="num">LockService</span>-Transaktionsschutz und <span class="num">SHA-256</span>-Authentifizierung. Kein Excel/Google-Sheet – die Verwaltung erfolgt direkt unten im integrierten <b>VB Cloud DB Studio</b>.
-            </p>
-            <div class="field">
-              <label for="inpGoogleCloudUrl">Cloud API-Endpunkt (`TLS 1.3`)</label>
-              <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                <input id="inpGoogleCloudUrl" type="text" class="num" style="flex: 1; min-width: 200px;" placeholder="https://script.google.com/macros/s/.../exec" />
-                <button type="button" onclick="saveGoogleCloudEndpoint()">Speichern</button>
+
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-label">FAHRZEUGVERWALTUNG ALLER NUTZER</div>
+                  <div class="card-title">Benutzer-Fahrzeuge &amp; Löschfunktion</div>
+                </div>
               </div>
-            </div>
-            <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px;">
-              <button type="button" class="sec sm" onclick="exportCloudDBJson()">Snapshot Export (.json)</button>
-              <button type="button" class="danger sm" onclick="revokeAllNonAdminSessions(false)">Alle Benutzer abmelden (außer Admin)</button>
-              <button type="button" class="danger sm" onclick="resetProductionDatabase()">Vault zurücksetzen</button>
+              <div id="admBikesList"></div>
             </div>
           </div>
+        </div>
 
-          <!-- Project Email & Support Mail System -->
+        <!-- ADMIN SUB-VIEW 2: VB CLOUD DB STUDIO (FULL WIDTH) -->
+        <div id="admSubViewDb" class="hide">
+          <div class="card">
+            <div class="card-header" style="flex-wrap: wrap;">
+              <div>
+                <div class="card-label">VB CLOUD DB STUDIO // INTEGRIERTE DATENBANK-KONSOLE</div>
+                <div class="card-title">Tabellen- &amp; Dokumenten-Inspektor</div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                <span id="dbStudioMeta" class="tag num">0 RECORDS • 0.0 KB</span>
+                <div class="seg-group">
+                  <button type="button" id="btnDbModeTable" class="seg-btn active" onclick="setDbStudioViewMode('table')">Relationen-Tabelle</button>
+                  <button type="button" id="btnDbModeJson" class="seg-btn" onclick="setDbStudioViewMode('json')">JSONB Dokument-Editor</button>
+                </div>
+              </div>
+            </div>
+
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 12px;">
+              <div class="seg-group" style="overflow-x: auto; max-width: 100%;">
+                <button type="button" class="seg-btn active" data-dbcol="users" onclick="selectDbCollection('users')">users</button>
+                <button type="button" class="seg-btn" data-dbcol="bikes" onclick="selectDbCollection('bikes')">bikes</button>
+                <button type="button" class="seg-btn" data-dbcol="trips" onclick="selectDbCollection('trips')">trips</button>
+                <button type="button" class="seg-btn" data-dbcol="tickets" onclick="selectDbCollection('tickets')">tickets</button>
+                <button type="button" class="seg-btn" data-dbcol="promos" onclick="selectDbCollection('promos')">promos</button>
+                <button type="button" class="seg-btn" data-dbcol="audit_log" onclick="selectDbCollection('audit_log')">audit_log</button>
+              </div>
+              <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                <button type="button" class="sec sm" onclick="scrollDbTable(-280)">← Spalten</button>
+                <button type="button" class="sec sm" onclick="scrollDbTable(280)">Spalten →</button>
+                <input id="inpDbSearch" type="text" class="num" style="width: 180px; padding: 6px 10px; font-size: 12px;" placeholder="WHERE filter..." oninput="renderDbStudio()" />
+              </div>
+            </div>
+
+            <div id="dbStudioTableView" class="db-scroll-viewport"></div>
+
+            <div id="dbStudioJsonView" class="hide">
+              <textarea id="txtDbRawJson" class="num" rows="12" style="font-size: 12px; line-height: 1.45; background: var(--bg-subtle);"></textarea>
+              <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px;">
+                <button type="button" class="sec sm" onclick="renderDbStudio()">Änderungen verwerfen</button>
+                <button type="button" class="sm" onclick="commitDbStudioJson()">Transaction Commit (In Cloud speichern)</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ADMIN SUB-VIEW 3: ESP32 HARDWARE RIDE SIMULATOR -->
+        <div id="admSubViewSim" class="hide">
           <div class="card">
             <div class="card-header">
               <div>
-                <div class="card-label">PROJEKT E-MAIL-SYSTEM</div>
-                <div class="card-title">Info- &amp; Support-Mail Versand</div>
+                <div class="card-label">HARDWARE-TESTUMGEBUNG (OHNE GPS-SENSOR)</div>
+                <div class="card-title">ESP32 &amp; App Echtzeit-Fahrsimulator</div>
               </div>
-              <span class="tag green">AUTO-MAIL AKTIV</span>
-            </div>
-            <form onsubmit="handleAdminSendEmail(event)">
-              <div class="field">
-                <label for="mailRecipient">Empfänger</label>
-                <select id="mailRecipient">
-                  <option value="ALL">An alle registrierten Benutzer (Rundmail)</option>
-                </select>
-              </div>
-              <div class="field">
-                <label for="mailSubject">Betreff</label>
-                <input id="mailSubject" type="text" required placeholder="z. B. Rückfrage zu deinem Support-Ticket" />
-              </div>
-              <div class="field">
-                <label for="mailBody">Nachricht</label>
-                <textarea id="mailBody" rows="2" required placeholder="Deine Nachricht an den Benutzer..."></textarea>
-              </div>
-              <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px;">
-                <span id="mailStatusMsg" style="font-size: 11.5px; color: var(--text-secondary);">Absender: vbdisplay.cloud@gmail.com</span>
-                <button type="submit" class="sm">E-Mail senden</button>
-              </div>
-            </form>
-          </div>
-        </div>
-
-        <!-- VB CLOUD DB STUDIO (ADMIN ONLY — IN-APP RELATIONAL & DOCUMENT DATABASE EXPLORER) -->
-        <div class="card admin-only-block">
-          <div class="card-header" style="flex-wrap: wrap;">
-            <div>
-              <div class="card-label">VB CLOUD DB STUDIO // INTEGRIERTE DATENBANK-KONSOLE</div>
-              <div class="card-title">Tabellen- &amp; Dokumenten-Inspektor</div>
-            </div>
-            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-              <span id="dbStudioMeta" class="tag num">0 RECORDS • 0.0 KB</span>
-              <div class="seg-group">
-                <button type="button" id="btnDbModeTable" class="seg-btn active" onclick="setDbStudioViewMode('table')">Relationen-Tabelle</button>
-                <button type="button" id="btnDbModeJson" class="seg-btn" onclick="setDbStudioViewMode('json')">JSONB Dokument-Editor</button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Collection Tabs, Horizontal Scroll Controls & Search Filter -->
-          <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 12px;">
-            <div class="seg-group" style="overflow-x: auto; max-width: 100%;">
-              <button type="button" class="seg-btn active" data-dbcol="users" onclick="selectDbCollection('users')">users</button>
-              <button type="button" class="seg-btn" data-dbcol="bikes" onclick="selectDbCollection('bikes')">bikes</button>
-              <button type="button" class="seg-btn" data-dbcol="trips" onclick="selectDbCollection('trips')">trips</button>
-              <button type="button" class="seg-btn" data-dbcol="tickets" onclick="selectDbCollection('tickets')">tickets</button>
-              <button type="button" class="seg-btn" data-dbcol="promos" onclick="selectDbCollection('promos')">promos</button>
-              <button type="button" class="seg-btn" data-dbcol="audit_log" onclick="selectDbCollection('audit_log')">audit_log</button>
-            </div>
-            <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
-              <button type="button" class="sec sm" onclick="scrollDbTable(-280)" title="Tabelle nach links scrollen">← Spalten</button>
-              <button type="button" class="sec sm" onclick="scrollDbTable(280)" title="Tabelle nach rechts scrollen">Spalten →</button>
-              <input id="inpDbSearch" type="text" class="num" style="width: 180px; padding: 6px 10px; font-size: 12px;" placeholder="WHERE filter..." oninput="renderDbStudio()" />
-            </div>
-          </div>
-
-          <!-- Horizontally Scrollable Table View -->
-          <div id="dbStudioTableView" class="db-scroll-viewport"></div>
-
-          <!-- Raw JSONB Document View -->
-          <div id="dbStudioJsonView" class="hide">
-            <textarea id="txtDbRawJson" class="num" rows="12" style="font-size: 12px; line-height: 1.45; background: var(--bg-subtle);"></textarea>
-            <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px;">
-              <button type="button" class="sec sm" onclick="renderDbStudio()">Änderungen verwerfen</button>
-              <button type="button" class="sm" onclick="commitDbStudioJson()">Transaction Commit (In Cloud speichern)</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- ESP32 Ride Simulator (Admin Only) -->
-        <div class="card admin-only-block">
-          <div class="card-header">
-            <div>
-              <div class="card-label">HARDWARE-TESTUMGEBUNG (OHNE GPS-SENSOR)</div>
-              <div class="card-title">ESP32 &amp; App Echtzeit-Fahrsimulator</div>
-            </div>
-            <span id="admSimModeBadge" class="tag accent">HARDWARE-SENSOREN</span>
-          </div>
-
-          <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px;">
-            <button type="button" onclick="setAdminSimMode(2)">Autopilot-Fahrt starten</button>
-            <button type="button" class="sec" onclick="setAdminSimMode(1)">Manuelle Steuerung</button>
-            <button type="button" class="sec" onclick="setAdminSimMode(0)">Echte Hardware-Sensoren</button>
-          </div>
-
-          <div class="grid-2">
-            <div>
-              <div class="field">
-                <label>Geschwindigkeit: <span id="admLblSpd" class="num">0</span> km/h</label>
-                <input id="admRngSpd" type="range" min="0" max="240" value="0" oninput="onAdminManualChange()" />
-              </div>
-              <div class="field">
-                <label>Drehzahl: <span id="admLblRpm" class="num">1300</span> rpm</label>
-                <input id="admRngRpm" type="range" min="0" max="12000" step="100" value="1300" oninput="onAdminManualChange()" />
-              </div>
-              <div class="field">
-                <label>Tankfüllstand: <span id="admLblFuel" class="num">78</span> %</label>
-                <input id="admRngFuel" type="range" min="0" max="100" value="78" oninput="onAdminManualChange()" />
-              </div>
+              <span id="admSimModeBadge" class="tag accent">HARDWARE-SENSOREN</span>
             </div>
 
-            <div>
-              <div class="field">
-                <label>Motortemperatur: <span id="admLblTemp" class="num">82</span> °C</label>
-                <input id="admRngTemp" type="range" min="40" max="125" value="82" oninput="onAdminManualChange()" />
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px;">
+              <button type="button" onclick="setAdminSimMode(2)">Autopilot-Fahrt starten</button>
+              <button type="button" class="sec" onclick="setAdminSimMode(1)">Manuelle Steuerung</button>
+              <button type="button" class="sec" onclick="setAdminSimMode(0)">Echte Hardware-Sensoren</button>
+            </div>
+
+            <div class="grid-2">
+              <div>
+                <div class="field">
+                  <label>Geschwindigkeit: <span id="admLblSpd" class="num">0</span> km/h</label>
+                  <input id="admRngSpd" type="range" min="0" max="240" value="0" oninput="onAdminManualChange()" />
+                </div>
+                <div class="field">
+                  <label>Drehzahl: <span id="admLblRpm" class="num">1300</span> rpm</label>
+                  <input id="admRngRpm" type="range" min="0" max="12000" step="100" value="1300" oninput="onAdminManualChange()" />
+                </div>
+                <div class="field">
+                  <label>Tankfüllstand: <span id="admLblFuel" class="num">78</span> %</label>
+                  <input id="admRngFuel" type="range" min="0" max="100" value="78" oninput="onAdminManualChange()" />
+                </div>
               </div>
-              <div class="field">
-                <label>Bordspannung: <span id="admLblBat" class="num">14.1</span> V</label>
-                <input id="admRngBat" type="range" min="10.5" max="14.8" step="0.1" value="14.1" oninput="onAdminManualChange()" />
-              </div>
-              <div class="field">
-                <label>Gangwahl &amp; 12V-Signale</label>
-                <div style="display: flex; gap: 4px; flex-wrap: wrap;">
-                  <button type="button" class="sec sm" onclick="setAdminGear(0)">N</button>
-                  <button type="button" class="sec sm" onclick="setAdminGear(1)">1</button>
-                  <button type="button" class="sec sm" onclick="setAdminGear(2)">2</button>
-                  <button type="button" class="sec sm" onclick="setAdminGear(3)">3</button>
-                  <button type="button" class="sec sm" onclick="setAdminGear(4)">4</button>
-                  <button type="button" class="sec sm" onclick="setAdminGear(5)">5</button>
-                  <button type="button" class="sec sm" onclick="setAdminGear(6)">6</button>
-                  <button type="button" class="sec sm" onclick="toggleAdminInd('turnLeft')">Blinker L</button>
-                  <button type="button" class="sec sm" onclick="toggleAdminInd('turnRight')">Blinker R</button>
-                  <button type="button" class="sec sm" onclick="toggleAdminInd('highBeam')">Fernlicht</button>
-                  <button type="button" class="sec sm" onclick="toggleAdminInd('oilWarn')">Öl-Warnung</button>
+
+              <div>
+                <div class="field">
+                  <label>Motortemperatur: <span id="admLblTemp" class="num">82</span> °C</label>
+                  <input id="admRngTemp" type="range" min="40" max="125" value="82" oninput="onAdminManualChange()" />
+                </div>
+                <div class="field">
+                  <label>Bordspannung: <span id="admLblBat" class="num">14.1</span> V</label>
+                  <input id="admRngBat" type="range" min="10.5" max="14.8" step="0.1" value="14.1" oninput="onAdminManualChange()" />
+                </div>
+                <div class="field">
+                  <label>Gangwahl &amp; 12V-Signale</label>
+                  <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+                    <button type="button" class="sec sm" onclick="setAdminGear(0)">N</button>
+                    <button type="button" class="sec sm" onclick="setAdminGear(1)">1</button>
+                    <button type="button" class="sec sm" onclick="setAdminGear(2)">2</button>
+                    <button type="button" class="sec sm" onclick="setAdminGear(3)">3</button>
+                    <button type="button" class="sec sm" onclick="setAdminGear(4)">4</button>
+                    <button type="button" class="sec sm" onclick="setAdminGear(5)">5</button>
+                    <button type="button" class="sec sm" onclick="setAdminGear(6)">6</button>
+                    <button type="button" class="sec sm" onclick="toggleAdminInd('turnLeft')">Blinker L</button>
+                    <button type="button" class="sec sm" onclick="toggleAdminInd('turnRight')">Blinker R</button>
+                    <button type="button" class="sec sm" onclick="toggleAdminInd('highBeam')">Fernlicht</button>
+                    <button type="button" class="sec sm" onclick="toggleAdminInd('oilWarn')">Öl-Warnung</button>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- User, Vehicle & Support Management -->
-        <div class="grid-2">
-          <div>
-            <!-- Registered Users -->
+        <!-- ADMIN SUB-VIEW 4: CLOUD VAULT & BROADCAST EMAIL -->
+        <div id="admSubViewCloud" class="hide">
+          <div class="grid-2">
             <div class="card">
-              <div class="card-label">KONTEN &amp; ROLLENVERWALTUNG</div>
-              <div class="card-title" style="margin: 4px 0 12px;">Registrierte Benutzer</div>
-              <div id="admUsersList"></div>
+              <div class="card-header">
+                <div>
+                  <div class="card-label">CLOUD DATABASE ENGINE (ACID VAULT)</div>
+                  <div class="card-title">Verschlüsselter Cloud-Datenspeicher</div>
+                </div>
+                <button type="button" class="sec sm" onclick="pullFromGoogleCloud()">Cloud Sync</button>
+              </div>
+              <p style="font-size: 12.5px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 12px;">
+                Isolierter NoSQL-Dokumentenspeicher mit <span class="num">LockService</span>-Transaktionsschutz und <span class="num">SHA-256</span>-Authentifizierung.
+              </p>
+              <div class="field">
+                <label for="inpGoogleCloudUrl">Cloud API-Endpunkt (`TLS 1.3`)</label>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                  <input id="inpGoogleCloudUrl" type="text" class="num" style="flex: 1; min-width: 200px;" placeholder="https://script.google.com/macros/s/.../exec" />
+                  <button type="button" onclick="saveGoogleCloudEndpoint()">Speichern</button>
+                </div>
+              </div>
+              <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px;">
+                <button type="button" class="sec sm" onclick="exportCloudDBJson()">Snapshot Export (.json)</button>
+                <button type="button" class="danger sm" onclick="resetProductionDatabase()">Vault zurücksetzen</button>
+              </div>
             </div>
 
-            <!-- All User Vehicles (Admin can delete any vehicle) -->
             <div class="card">
-              <div class="card-label">FAHRZEUGBESTAND ALLER NUTZER</div>
-              <div class="card-title" style="margin: 4px 0 12px;">Benutzer-Fahrzeuge verwalten</div>
-              <div id="admBikesList"></div>
+              <div class="card-header">
+                <div>
+                  <div class="card-label">SYSTEM-RUNDMAIL &amp; BENACHRICHTIGUNG</div>
+                  <div class="card-title">Info- &amp; Rundmail Versand</div>
+                </div>
+                <span class="tag green">AUTO-MAIL AKTIV</span>
+              </div>
+              <form onsubmit="handleAdminSendEmail(event)">
+                <div class="field">
+                  <label for="mailRecipient">Empfänger</label>
+                  <select id="mailRecipient">
+                    <option value="ALL">An alle registrierten Benutzer (Rundmail)</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="mailSubject">Betreff</label>
+                  <input id="mailSubject" type="text" required placeholder="z. B. Firmware-Update v2.5 &amp; Wartungshinweis" />
+                </div>
+                <div class="field">
+                  <label for="mailBody">Nachricht</label>
+                  <textarea id="mailBody" rows="3" required placeholder="Deine Nachricht an die Benutzer..."></textarea>
+                </div>
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+                  <span id="mailStatusMsg" style="font-size: 11.5px; color: var(--text-secondary);">Absender: vbdisplay.cloud@gmail.com</span>
+                  <button type="submit" class="sm">E-Mail senden</button>
+                </div>
+              </form>
             </div>
-          </div>
-
-          <div class="card">
-            <div class="card-label">SUPPORT-DESK (TICKETS &amp; STATUS)</div>
-            <div class="card-title" style="margin: 4px 0 12px;">Alle Kunden-Tickets bearbeiten</div>
-            <div id="admTicketsList"></div>
           </div>
         </div>
       </section>
@@ -1596,7 +1758,7 @@
   </dialog>
 
   <!-- =====================================================================
-       BOTTOM NAVIGATION BAR (CUSTOM SVG LINE ICONS — ZERO EMOJIS)
+       BOTTOM NAVIGATION BAR (CUSTOM SVG LINE ICONS — SEPARATE SUPPORT & ADMIN TABS)
        ===================================================================== -->
   <nav id="bottomNav" class="tabbar hide">
     <div class="tabbar-inner">
@@ -1635,6 +1797,15 @@
         <span>Lizenz &amp; Hilfe</span>
       </button>
 
+      <!-- Dedicated Support Desk Tab (Visible for role === 'support' AND role === 'admin') -->
+      <button type="button" id="tabBtnSupport" class="tab-btn hide" data-tab="SupportDesk" onclick="switchTab('SupportDesk')">
+        <svg class="ico" viewBox="0 0 24 24">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+        </svg>
+        <span>Support</span>
+      </button>
+
+      <!-- Dedicated Admin System Tab (Visible ONLY for role === 'admin') -->
       <button type="button" id="tabBtnAdmin" class="tab-btn hide" data-tab="Admin" onclick="switchTab('Admin')">
         <svg class="ico" viewBox="0 0 24 24">
           <line x1="4" y1="21" x2="4" y2="14"></line>
@@ -1980,7 +2151,7 @@
     }
 
     async function serverlessApiHandler(path, method, body) {
-      if (path === '/api/auth/login' || path === '/api/auth/register' || path === '/api/auth/check-email') {
+      if (path === '/api/auth/login' || path === '/api/auth/register' || path === '/api/auth/check-email' || path === '/api/auth/reset-check' || path === '/api/auth/reset-password') {
         await pullFromGoogleCloud(false);
       }
       const db = getCloudDB();
@@ -2002,6 +2173,35 @@
           throw new Error('Für diese E-Mail-Adresse existiert bereits ein verifiziertes Konto.');
         }
         return { ok: true };
+      }
+
+      if (path === '/api/auth/reset-check') {
+        const email = String((body && body.email) || '').trim().toLowerCase();
+        const found = db.users.find(u => u.email.toLowerCase() === email);
+        if (!found) {
+          throw new Error('Kein Konto mit dieser E-Mail-Adresse gefunden.');
+        }
+        return { ok: true, name: found.name };
+      }
+
+      if (path === '/api/auth/reset-password') {
+        const email = String((body && body.email) || '').trim().toLowerCase();
+        const newPwHash = String((body && body.pwHash) || '').trim();
+        const found = db.users.find(u => u.email.toLowerCase() === email);
+        if (!found || !newPwHash || !body.otpVerified) {
+          throw new Error('Passwort-Reset abgelehnt.');
+        }
+        found.pw_hash = newPwHash;
+        found.email_verified = true;
+        appendAuditLog(db, 'PASSWORD_RESET_COMPLETED', email, `Password updated via verified email OTP`);
+        saveCloudDB(db);
+        localStorage.setItem('vb_cloud_uid', String(found.id));
+        const safeUser = Object.assign({}, found);
+        delete safeUser.pw_hash;
+        const token = found.role === 'admin'
+          ? `cloud_tok_${found.id}_admin`
+          : `cloud_tok_${found.id}_ep${epoch}`;
+        return { token, user: safeUser };
       }
 
       if (path === '/api/auth/login') {
@@ -2382,12 +2582,151 @@
       document.getElementById('formLogin').classList.toggle('hide', !isLogin);
       document.getElementById('formRegister').classList.toggle('hide', isLogin);
       document.getElementById('formVerifyEmail').classList.add('hide');
+      document.getElementById('formResetStep1').classList.add('hide');
+      document.getElementById('formResetStep2').classList.add('hide');
       document.getElementById('btnAuthTabLogin').classList.toggle('active', isLogin);
       document.getElementById('btnAuthTabReg').classList.toggle('active', !isLogin);
       document.getElementById('authErrorBox').classList.add('hide');
       document.getElementById('authInfoBox').classList.add('hide');
       botSecurity.formOpenedAt = performance.now();
       generateBotChallenge();
+    }
+
+    let pendingReset = null;
+
+    function openPasswordResetFlow() {
+      document.getElementById('authTabSwitchWrap').classList.add('hide');
+      document.getElementById('formLogin').classList.add('hide');
+      document.getElementById('formRegister').classList.add('hide');
+      document.getElementById('formVerifyEmail').classList.add('hide');
+      document.getElementById('formResetStep1').classList.remove('hide');
+      document.getElementById('formResetStep2').classList.add('hide');
+      document.getElementById('authErrorBox').classList.add('hide');
+      document.getElementById('authInfoBox').classList.add('hide');
+      const prefill = document.getElementById('loginIdent').value.trim();
+      if (prefill.includes('@')) document.getElementById('inpResetEmail').value = prefill;
+    }
+
+    async function handleResetRequestCode(e) {
+      e.preventDefault();
+      try {
+        checkRateLimit();
+        const email = document.getElementById('inpResetEmail').value.trim().toLowerCase();
+        const checkRes = await apiCall('/api/auth/reset-check', 'POST', { email });
+
+        const randArr = new Uint32Array(1);
+        crypto.getRandomValues(randArr);
+        const otpCode = String(100000 + (randArr[0] % 900000));
+        const otpHash = await hashPassword(otpCode);
+
+        pendingReset = {
+          email,
+          otpHash,
+          expiresAt: Date.now() + 10 * 60 * 1000,
+          attempts: 0
+        };
+
+        const btn = document.getElementById('btnResetReqSubmit');
+        btn.disabled = true;
+        btn.textContent = 'Sende Sicherheitscode...';
+
+        const htmlBody =
+          `<p>Hallo <b>${escHtml(checkRes.name || email)}</b>,</p>` +
+          `<p>du hast das Zurücksetzen deines <b>VB Connect</b> Passworts angefordert. Gib folgenden 6-stelligen Sicherheitscode in der App ein:</p>` +
+          `<div style="margin:20px 0;padding:18px;background:#18181b;border:1px solid #00bcd4;border-radius:10px;text-align:center;">` +
+            `<div style="font-size:11px;font-family:monospace;color:#a1a1aa;letter-spacing:0.12em;margin-bottom:6px;">PASSWORT-RESET CODE (10 MINUTEN GÜLTIG)</div>` +
+            `<div style="font-size:32px;font-family:monospace;font-weight:700;letter-spacing:0.28em;color:#ffffff;">${otpCode}</div>` +
+          `</div>` +
+          `<p style="font-size:12px;color:#a1a1aa;">Falls du kein Zurücksetzen angefordert hast, kannst du diese E-Mail ignorieren.</p>`;
+
+        await fetch(googleCloudUrl, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify({
+            action: 'send_mail',
+            to: email,
+            recipients: [email],
+            subject: `Passwort zurücksetzen: Code ${otpCode}`,
+            headline: 'Passwort zurücksetzen',
+            htmlBody: htmlBody,
+            mailType: 'PASSWORD_RESET_OTP'
+          })
+        });
+
+        btn.disabled = false;
+        btn.textContent = 'Sicherheitscode per E-Mail senden';
+
+        document.getElementById('formResetStep1').classList.add('hide');
+        document.getElementById('formResetStep2').classList.remove('hide');
+        document.getElementById('lblResetTargetEmail').textContent = email;
+        document.getElementById('inpResetOtpCode').value = '';
+        document.getElementById('inpResetNewPw').value = '';
+        document.getElementById('inpResetNewPw2').value = '';
+        showAuthInfo(`Sicherheitscode wurde an ${email} gesendet.`);
+      } catch (err) {
+        const btn = document.getElementById('btnResetReqSubmit');
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = 'Sicherheitscode per E-Mail senden';
+        }
+        showAuthError(err.message);
+      }
+    }
+
+    async function handleResetConfirmNewPw(e) {
+      e.preventDefault();
+      try {
+        checkRateLimit();
+        if (!pendingReset) {
+          openPasswordResetFlow();
+          throw new Error('Keine offene Passwort-Reset-Anfrage.');
+        }
+        if (Date.now() > pendingReset.expiresAt) {
+          pendingReset = null;
+          openPasswordResetFlow();
+          throw new Error('Der Sicherheitscode ist abgelaufen (10 Min. Limit). Bitte neu anfordern.');
+        }
+
+        const code = document.getElementById('inpResetOtpCode').value.trim();
+        const pw1 = document.getElementById('inpResetNewPw').value;
+        const pw2 = document.getElementById('inpResetNewPw2').value;
+        if (pw1 !== pw2) {
+          throw new Error('Die beiden neuen Passwörter stimmen nicht überein.');
+        }
+        const hasLetter = /[A-Za-z]/.test(pw1);
+        const hasNumOrSpec = /[0-9!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(pw1);
+        if (pw1.length < 8 || !hasLetter || !hasNumOrSpec) {
+          throw new Error('Passwort-Richtlinie: Mindestens 8 Zeichen sowie Buchstaben und eine Zahl/Sonderzeichen.');
+        }
+
+        const codeHash = await hashPassword(code);
+        if (codeHash !== pendingReset.otpHash) {
+          pendingReset.attempts++;
+          recordFailedAuthAttempt('RESET_OTP_MISMATCH', pendingReset.email);
+          if (pendingReset.attempts >= 3) {
+            pendingReset = null;
+            switchAuthMode('login');
+            throw new Error('Zu viele ungültige Code-Eingaben. Vorgang abgebrochen.');
+          }
+          throw new Error(`Ungültiger Sicherheitscode (${3 - pendingReset.attempts} Versuche verbleibend).`);
+        }
+
+        const pwHash = await hashPassword(pw1);
+        const res = await apiCall('/api/auth/reset-password', 'POST', {
+          email: pendingReset.email,
+          pwHash,
+          otpVerified: true
+        });
+
+        pendingReset = null;
+        rateLimiter.failedAttempts = 0;
+        authToken = res.token;
+        localStorage.setItem('vb_connect_token', authToken);
+        await loadBootstrap();
+      } catch (err) {
+        showAuthError(err.message);
+      }
     }
 
     function showAuthError(msg) {
@@ -2649,30 +2988,19 @@
         document.getElementById('bottomNav').classList.remove('hide');
         document.getElementById('btnLogout').classList.remove('hide');
 
+        const tabSupportBtn = document.getElementById('tabBtnSupport');
         const tabAdminBtn = document.getElementById('tabBtnAdmin');
-        tabAdminBtn.classList.toggle('hide', !isStaff);
-        const tabSpan = tabAdminBtn.querySelector('span');
-        if (tabSpan) tabSpan.textContent = isAdmin ? 'System' : 'Support';
-
-        // Hide all admin-only blocks when logged in as support
-        document.querySelectorAll('.admin-only-block').forEach(el => {
-          el.classList.toggle('hide', !isAdmin);
-        });
-
-        const admKicker = document.getElementById('admSecKicker');
-        const admTitle = document.getElementById('admSecTitle');
-        const admBadge = document.getElementById('admCloudBadge');
-        if (admKicker) admKicker.textContent = isAdmin ? '05 // SYSTEMADMINISTRATION & ECU-SIMULATOR' : '05 // TECHNISCHER KUNDENSUPPORT';
-        if (admTitle) admTitle.innerHTML = isAdmin ? 'System <em>Konsole</em>' : 'Support <em>Desk</em>';
-        if (admBadge) admBadge.textContent = isAdmin ? 'ADMIN VOLLZUGRIFF' : 'SUPPORT-MODUS (EINGESCHRÄNKT)';
+        if (tabSupportBtn) tabSupportBtn.classList.toggle('hide', !isStaff);
+        if (tabAdminBtn) tabAdminBtn.classList.toggle('hide', !isAdmin);
 
         renderBikeSelect();
         renderTripsList();
         renderGarage();
         renderSubscriptionAndSupport();
-        if (data.admin) renderAdminCenter();
+        if (isStaff && data.admin) renderSupportDesk();
+        if (isAdmin && data.admin) renderAdminCenter();
 
-        const anyVisible = ['Cockpit', 'Trips', 'Garage', 'SubSupport', 'Admin'].some(
+        const anyVisible = ['Cockpit', 'Trips', 'Garage', 'SubSupport', 'SupportDesk', 'Admin'].some(
           t => !document.getElementById('view' + t).classList.contains('hide')
         );
         if (!anyVisible) switchTab('Cockpit');
@@ -2682,8 +3010,9 @@
     }
 
     function switchTab(tabName) {
-      ['Cockpit', 'Trips', 'Garage', 'SubSupport', 'Admin'].forEach(t => {
-        document.getElementById('view' + t).classList.toggle('hide', t !== tabName);
+      ['Cockpit', 'Trips', 'Garage', 'SubSupport', 'SupportDesk', 'Admin'].forEach(t => {
+        const el = document.getElementById('view' + t);
+        if (el) el.classList.toggle('hide', t !== tabName);
       });
       document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.tab === tabName);
@@ -2695,6 +3024,32 @@
           drawTripAnalytics();
         }
       }
+    }
+
+    function switchUserSubView(view) {
+      const isPlans = view === 'plans';
+      document.getElementById('userSubViewPlans').classList.toggle('hide', !isPlans);
+      document.getElementById('userSubViewTickets').classList.toggle('hide', isPlans);
+      document.getElementById('btnUserSubTabPlans').classList.toggle('active', isPlans);
+      document.getElementById('btnUserSubTabTickets').classList.toggle('active', !isPlans);
+    }
+
+    function switchSupportSubView(view) {
+      ['tickets', 'customers', 'mail'].forEach(v => {
+        const cap = v.charAt(0).toUpperCase() + v.slice(1);
+        document.getElementById('supView' + cap).classList.toggle('hide', v !== view);
+        document.getElementById('btnSupSub' + cap).classList.toggle('active', v === view);
+      });
+    }
+
+    function switchAdminSubView(view) {
+      const map = { accounts: 'Accounts', db: 'Db', sim: 'Sim', cloud: 'Cloud' };
+      Object.keys(map).forEach(k => {
+        const cap = map[k];
+        document.getElementById('admSubView' + cap).classList.toggle('hide', k !== view);
+        document.getElementById('btnAdmTab' + cap).classList.toggle('active', k === view);
+      });
+      if (view === 'db') renderDbStudio();
     }
 
     async function openInstallModal() {
@@ -3444,19 +3799,158 @@
       tblWrap.innerHTML = `<table style="min-width:860px;width:max-content;border-collapse:collapse;"><thead><tr>${headerHtml}</tr></thead><tbody>${bodyHtml}</tbody></table>`;
     }
 
+    let activeSupportTicketFilter = 'all';
+
+    function setSupportTicketFilter(filter) {
+      activeSupportTicketFilter = filter;
+      document.querySelectorAll('[data-tkfilter]').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.tkfilter === filter);
+      });
+      renderSupportDesk();
+    }
+
+    function renderSupportDesk() {
+      const adm = appData.admin;
+      if (!adm) return;
+      const allTickets = appData.tickets || [];
+      const openCount = allTickets.filter(t => t.status === 'open').length;
+      const resolvedCount = allTickets.filter(t => t.status === 'answered' || t.status === 'resolved').length;
+
+      document.getElementById('supKpiOpen').textContent = openCount;
+      document.getElementById('supKpiResolved').textContent = resolvedCount;
+      document.getElementById('supKpiCustomers').textContent = (adm.users || []).length;
+
+      // 1. Ticket Queue
+      const filteredTickets = activeSupportTicketFilter === 'all'
+        ? allTickets
+        : allTickets.filter(t => t.status === activeSupportTicketFilter);
+
+      const tkContainer = document.getElementById('supTicketsContainer');
+      if (tkContainer) {
+        if (filteredTickets.length === 0) {
+          tkContainer.innerHTML = `<div style="color:var(--text-secondary);font-size:13px;">Keine Tickets in dieser Ansicht.</div>`;
+        } else {
+          tkContainer.innerHTML = filteredTickets.map(t => `
+            <div style="padding: 14px 0; border-bottom: 1px solid var(--border);">
+              <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;">
+                <div>
+                  <span style="font-weight: 600; font-size: 14px;">#${t.id} ${escHtml(t.subject)}</span>
+                  <div class="num" style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">
+                    Kunde: ${escHtml(t.user_name || '')} (${escHtml(t.user_email || '')}) • ${escHtml(t.category || 'support')} • Prio: ${escHtml(t.priority || 'normal')}
+                  </div>
+                </div>
+                <select style="width: auto; padding: 5px 10px; font-size: 11.5px;" onchange="adminUpdateTicketStatus(${t.id}, this.value)">
+                  <option value="open" ${t.status === 'open' ? 'selected' : ''}>Status: Offen</option>
+                  <option value="answered" ${t.status === 'answered' ? 'selected' : ''}>Status: Beantwortet</option>
+                  <option value="resolved" ${t.status === 'resolved' ? 'selected' : ''}>Status: Gelöst</option>
+                </select>
+              </div>
+              ${(t.messages || []).map(m => `
+                <div style="padding: 9px 11px; border-radius: 8px; background: var(--bg-subtle); border: 1px solid var(--border); margin-top: 8px; font-size: 12.5px;">
+                  <div class="num" style="font-size: 10.5px; color: var(--text-secondary); margin-bottom: 3px;">${escHtml(m.sender_name)} (${escHtml((m.sender_role || '').toUpperCase())}) • ${escHtml(m.created_at)}</div>
+                  <div style="white-space: pre-line;">${escHtml(m.message)}</div>
+                </div>
+              `).join('')}
+              <div style="display: flex; gap: 6px; margin-top: 10px;">
+                <input id="admReply_${t.id}" type="text" placeholder="Support-Antwort schreiben (wird auch per E-Mail zugestellt)..." />
+                <button type="button" class="sm" onclick="adminReplyTicket(${t.id})">Antworten</button>
+              </div>
+            </div>
+          `).join('');
+        }
+      }
+
+      // 2. Read-Only Customer & Vehicle Diagnostics
+      const custSearch = (document.getElementById('inpSupCustSearch') ? document.getElementById('inpSupCustSearch').value : '').trim().toLowerCase();
+      const allBikes = adm.allBikes || [];
+      const custRows = (adm.users || []).filter(u => {
+        if (!custSearch) return true;
+        const userBikes = allBikes.filter(b => b.user_id === u.id);
+        return JSON.stringify(u).toLowerCase().includes(custSearch) || JSON.stringify(userBikes).toLowerCase().includes(custSearch);
+      });
+
+      const custContainer = document.getElementById('supCustomersContainer');
+      if (custContainer) {
+        custContainer.innerHTML = custRows.map(u => {
+          const userBikes = allBikes.filter(b => b.user_id === u.id);
+          return `
+            <div style="padding: 12px 0; border-bottom: 1px solid var(--border);">
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;">
+                <div>
+                  <div style="font-weight: 600; font-size: 13.5px;">${escHtml(u.name)}</div>
+                  <div class="num" style="font-size: 11px; color: var(--text-secondary);">${escHtml(u.email)}</div>
+                </div>
+                <div style="display: flex; gap: 6px;">
+                  <span class="tag">${escHtml((u.plan || 'free').toUpperCase())}</span>
+                  <span class="tag accent">${escHtml((u.role || 'user').toUpperCase())}</span>
+                </div>
+              </div>
+              <div class="num" style="font-size: 11.5px; color: var(--text-secondary); margin-top: 6px;">
+                Fahrzeuge: ${userBikes.length === 0 ? 'Keine hinterlegt' : userBikes.map(b => `${escHtml(b.name)} (${escHtml(b.plate)}, ${Number(b.odo_km || 0).toFixed(0)} km)`).join(' • ')}
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      // 3. Support Direct Email Recipient List
+      const supMailSel = document.getElementById('supMailRecipient');
+      if (supMailSel) {
+        supMailSel.innerHTML = (adm.users || []).map(u =>
+          `<option value="${escHtml(u.email)}">${escHtml(u.name)} (${escHtml(u.email)})</option>`
+        ).join('');
+      }
+    }
+
+    async function handleSupportDirectEmail(e) {
+      e.preventDefault();
+      const recipient = document.getElementById('supMailRecipient').value;
+      const subject = document.getElementById('supMailSubject').value.trim();
+      const message = document.getElementById('supMailBody').value.trim();
+      const statusEl = document.getElementById('supMailStatusMsg');
+
+      if (!googleCloudUrl || !recipient) return;
+      statusEl.style.color = 'var(--accent)';
+      statusEl.textContent = 'Sende Support-E-Mail...';
+      try {
+        await fetch(googleCloudUrl, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify({
+            action: 'send_mail',
+            recipients: [recipient],
+            subject,
+            headline: 'VB Connect Support-Mitteilung',
+            message,
+            mailType: 'SUPPORT_DIRECT'
+          })
+        });
+        statusEl.style.color = 'var(--green)';
+        statusEl.textContent = `Support-E-Mail an ${recipient} versendet.`;
+        document.getElementById('supMailSubject').value = '';
+        document.getElementById('supMailBody').value = '';
+      } catch (err) {
+        statusEl.style.color = 'var(--red)';
+        statusEl.textContent = 'Fehler beim E-Mail-Versand.';
+      }
+    }
+
     function renderAdminCenter() {
       const adm = appData.admin;
       if (!adm) return;
       const isAdmin = currentUser && currentUser.role === 'admin';
+      if (!isAdmin) return;
+
       const gInp = document.getElementById('inpGoogleCloudUrl');
       if (gInp) gInp.value = googleCloudUrl;
 
       const mailSel = document.getElementById('mailRecipient');
       if (mailSel) {
-        mailSel.innerHTML = (isAdmin ? `<option value="ALL">An alle registrierten Benutzer (${(adm.users || []).length} Konten)</option>` : '') +
+        mailSel.innerHTML = `<option value="ALL">An alle registrierten Benutzer (${(adm.users || []).length} Konten)</option>` +
           (adm.users || []).map(u => `<option value="${escHtml(u.email)}">${escHtml(u.name)} (${escHtml(u.email)})</option>`).join('');
       }
-      if (isAdmin) renderDbStudio();
+      renderDbStudio();
 
       document.getElementById('admKpiUsers').textContent = adm.kpis.totalUsers;
       document.getElementById('admKpiTrips').textContent = adm.kpis.totalTrips;
@@ -3464,37 +3958,27 @@
       const mrrEl = document.getElementById('admKpiMrr');
       if (mrrEl) mrrEl.textContent = `${adm.kpis.mrrEuro.toFixed(2)} €`;
 
-      // 1. Users & Role Assignment (Admin can edit Plan & Role [user/support/admin], Support has Read-Only view)
-      const roleLabels = { user: 'FAHRER', support: 'SUPPORT', admin: 'ADMIN' };
       document.getElementById('admUsersList').innerHTML = (adm.users || []).map(u => `
         <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--border); flex-wrap: wrap;">
           <div>
             <div style="font-weight: 600; font-size: 13.5px;">${escHtml(u.name)}</div>
             <div class="num" style="font-size: 11px; color: var(--text-secondary);">${escHtml(u.email)}</div>
           </div>
-          ${isAdmin ? `
-            <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-              <select style="width: auto; padding: 5px 8px; font-size: 11.5px;" onchange="adminUpdateUser(${u.id}, this.value, '${u.role}')">
-                <option value="free" ${u.plan === 'free' ? 'selected' : ''}>Basis</option>
-                <option value="pro" ${u.plan === 'pro' ? 'selected' : ''}>Pro</option>
-                <option value="trackday" ${u.plan === 'trackday' ? 'selected' : ''}>Trackday</option>
-              </select>
-              <select style="width: auto; padding: 5px 8px; font-size: 11.5px;" onchange="adminUpdateUser(${u.id}, '${u.plan}', this.value)">
-                <option value="user" ${u.role === 'user' ? 'selected' : ''}>Rolle: Fahrer</option>
-                <option value="support" ${u.role === 'support' ? 'selected' : ''}>Rolle: Support</option>
-                <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>Rolle: Admin</option>
-              </select>
-            </div>
-          ` : `
-            <div style="display: flex; gap: 6px;">
-              <span class="tag">${escHtml((u.plan || 'free').toUpperCase())}</span>
-              <span class="tag accent">${roleLabels[u.role] || 'FAHRER'}</span>
-            </div>
-          `}
+          <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+            <select style="width: auto; padding: 5px 8px; font-size: 11.5px;" onchange="adminUpdateUser(${u.id}, this.value, '${u.role}')">
+              <option value="free" ${u.plan === 'free' ? 'selected' : ''}>Basis</option>
+              <option value="pro" ${u.plan === 'pro' ? 'selected' : ''}>Pro</option>
+              <option value="trackday" ${u.plan === 'trackday' ? 'selected' : ''}>Trackday</option>
+            </select>
+            <select style="width: auto; padding: 5px 8px; font-size: 11.5px;" onchange="adminUpdateUser(${u.id}, '${u.plan}', this.value)">
+              <option value="user" ${u.role === 'user' ? 'selected' : ''}>Rolle: Fahrer</option>
+              <option value="support" ${u.role === 'support' ? 'selected' : ''}>Rolle: Support</option>
+              <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>Rolle: Admin</option>
+            </select>
+          </div>
         </div>
       `).join('');
 
-      // 2. All User Vehicles (Admin can delete any user's vehicle, Support has Read-Only view)
       const allBikes = adm.allBikes || appData.bikes || [];
       const bikesContainer = document.getElementById('admBikesList');
       if (bikesContainer) {
@@ -3510,48 +3994,11 @@
                   <div style="font-weight: 600; font-size: 13.5px;">${escHtml(b.name)} — ${escHtml(b.brand)} ${escHtml(b.model)} (${escHtml(b.plate)})</div>
                   <div class="num" style="font-size: 11px; color: var(--text-secondary);">Eigentümer: ${escHtml(ownerLabel)} • ${Number(b.odo_km || 0).toFixed(0)} km • Redline ${b.redline_rpm} rpm</div>
                 </div>
-                ${isAdmin ? `
-                  <button type="button" class="danger sm" onclick="adminDeleteBike(${b.id})">Fahrzeug löschen</button>
-                ` : `
-                  <span class="tag num">#${b.id}</span>
-                `}
+                <button type="button" class="danger sm" onclick="adminDeleteBike(${b.id})">Fahrzeug löschen</button>
               </div>
             `;
           }).join('');
         }
-      }
-
-      // 3. Support Tickets Desk (Accessible to both Admin & Support role)
-      const allTickets = appData.tickets || [];
-      const tkContainer = document.getElementById('admTicketsList');
-      if (allTickets.length === 0) {
-        tkContainer.innerHTML = `<div style="color:var(--text-secondary);font-size:12.5px;">Keine offenen Kunden-Tickets.</div>`;
-      } else {
-        tkContainer.innerHTML = allTickets.map(t => `
-          <div style="padding: 12px 0; border-bottom: 1px solid var(--border);">
-            <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;">
-              <div>
-                <span style="font-weight: 600; font-size: 13.5px;">#${t.id} ${escHtml(t.subject)}</span>
-                <div class="num" style="font-size: 11px; color: var(--text-secondary);">Kunde: ${escHtml(t.user_name || '')} (${escHtml(t.user_email || '')}) • ${escHtml(t.category || 'support')}</div>
-              </div>
-              <select style="width: auto; padding: 4px 8px; font-size: 11px;" onchange="adminUpdateTicketStatus(${t.id}, this.value)">
-                <option value="open" ${t.status === 'open' ? 'selected' : ''}>Offen</option>
-                <option value="answered" ${t.status === 'answered' ? 'selected' : ''}>Beantwortet</option>
-                <option value="resolved" ${t.status === 'resolved' ? 'selected' : ''}>Gelöst</option>
-              </select>
-            </div>
-            ${(t.messages || []).map(m => `
-              <div style="padding: 8px 10px; border-radius: 6px; background: var(--bg-subtle); border: 1px solid var(--border); margin-top: 6px; font-size: 12px;">
-                <div class="num" style="font-size: 10px; color: var(--text-secondary); margin-bottom: 2px;">${escHtml(m.sender_name)} (${escHtml((m.sender_role || '').toUpperCase())}) • ${escHtml(m.created_at)}</div>
-                <div style="white-space: pre-line;">${escHtml(m.message)}</div>
-              </div>
-            `).join('')}
-            <div style="display: flex; gap: 6px; margin-top: 8px;">
-              <input id="admReply_${t.id}" type="text" placeholder="Support-Antwort (wird auch per E-Mail gesendet)..." />
-              <button type="button" class="sm" onclick="adminReplyTicket(${t.id})">Antworten</button>
-            </div>
-          </div>
-        `).join('');
       }
     }
 
