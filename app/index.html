@@ -1520,7 +1520,9 @@
        ===================================================================== -->
   <script>
     const PUBLIC_CLOUD_APP_URL = 'https://coponte.github.io/VB-Display-Web/app/';
-    let googleCloudUrl = localStorage.getItem('vb_google_cloud_url') || '';
+    const DEFAULT_GOOGLE_CLOUD_URL = 'https://script.google.com/macros/s/AKfycbxWkQh_VswHFy-D22vuWr6-toII00zn_0Wle-f0hv6U3ftRPdZibfAqE7eYsRdjekU/exec';
+    const DEFAULT_GOOGLE_SHEET_URL = 'https://docs.google.com/spreadsheets/d/188iO0ApEolGy3q2MQKrnuaerm7_iSJk-ZgIATwoOz8w/edit';
+    let googleCloudUrl = localStorage.getItem('vb_google_cloud_url') || DEFAULT_GOOGLE_CLOUD_URL;
     let authToken = localStorage.getItem('vb_connect_token') || '';
     let currentUser = null;
     let appData = { bikes: [], trips: [], tickets: [], admin: null };
@@ -1698,7 +1700,7 @@
       return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
     }
 
-    let googleSheetUrl = localStorage.getItem('vb_google_sheet_url') || 'https://drive.google.com';
+    let googleSheetUrl = localStorage.getItem('vb_google_sheet_url') || DEFAULT_GOOGLE_SHEET_URL;
 
     function getCloudDB() {
       try {
@@ -1713,7 +1715,7 @@
           {
             id: 1,
             name: 'VB System Admin',
-            email: 'admin@vb-display.de',
+            email: 'vbdisplay.cloud@gmail.com',
             username: 'admin',
             pw_hash: 'c9cda8c700e95ece4113961f0727316c98f79f9052bd6ce7b4566a5df1330434',
             role: 'admin',
@@ -1747,7 +1749,7 @@
       }
     }
 
-    async function pullFromGoogleCloud() {
+    async function pullFromGoogleCloud(reloadUI = true) {
       if (!googleCloudUrl) return;
       try {
         const r = await fetch(googleCloudUrl + '?action=pull');
@@ -1761,7 +1763,7 @@
           }
           if (data.db && Array.isArray(data.db.users) && data.db.users.length > 0) {
             localStorage.setItem('vb_production_cloud_db_v1', JSON.stringify(data.db));
-            if (authToken) await loadBootstrap();
+            if (reloadUI && authToken) await loadBootstrap();
           }
         }
       } catch (e) {}
@@ -1784,6 +1786,9 @@
     }
 
     async function serverlessApiHandler(path, method, body) {
+      if (path === '/api/auth/login' || path === '/api/auth/register') {
+        await pullFromGoogleCloud(false);
+      }
       const db = getCloudDB();
       const uid = Number(localStorage.getItem('vb_cloud_uid') || 1);
       const user = db.users.find(u => u.id === uid) || db.users[0];
