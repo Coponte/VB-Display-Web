@@ -1145,33 +1145,18 @@
 
         <!-- Promo Code & Support Tickets -->
         <div class="grid-2">
-          <!-- Promo Code & Role Switcher for Public Testing -->
+          <!-- Promo Code -->
           <div>
             <div class="card">
               <div class="card-label">PROJEKTLIZENZ / GUTSCHEINCODE</div>
               <div class="card-title" style="margin: 4px 0 10px;">Freischaltcode einlösen</div>
               <div style="display: flex; gap: 8px;">
-                <input id="inpPromoCode" type="text" class="num" placeholder="Code (z. B. FES2027)" />
+                <input id="inpPromoCode" type="text" class="num" placeholder="Lizenzcode eingeben" />
                 <button type="button" onclick="redeemPromoCode()">Einlösen</button>
               </div>
               <div id="promoMsg" style="font-size: 12px; color: var(--text-secondary); margin-top: 8px;">
-                Tipp: Mit <span class="num">FES2027</span> schaltest du Trackday Ultimate kostenlos frei.
+                Gib einen gültigen Projekt- oder Gutscheincode ein, um deinen Tarif freizuschalten.
               </div>
-            </div>
-
-            <!-- Public Tester Role & Cloud Switch -->
-            <div class="card">
-              <div class="card-header">
-                <div>
-                  <div class="card-label">PUBLIC TEST-MODUS</div>
-                  <div class="card-title">Berechtigung &amp; Kontorolle</div>
-                </div>
-                <span id="userRoleBadge" class="tag">FAHRER</span>
-              </div>
-              <p style="font-size: 12.5px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 12px;">
-                Für öffentliche Tests mit neuen Accounts kannst du für dein aktuelles Konto jederzeit die Admin- &amp; Simulator-Konsole freischalten.
-              </p>
-              <button type="button" class="sec sm" onclick="toggleCurrentAccountAdmin()">Admin-Konsole für dieses Konto ein-/ausschalten</button>
             </div>
           </div>
 
@@ -1662,16 +1647,24 @@
       ], 55, 124.0, 44.0, 36.0, 77);
     }
 
+    // Salted SHA-256 Password Hashing (No plaintext passwords in source or storage)
+    async function hashPassword(pw) {
+      const msgBuffer = new TextEncoder().encode('vb_salt_2026::' + String(pw));
+      const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
     function getCloudDB() {
       try {
-        const raw = localStorage.getItem('vb_serverless_cloud_db_v3');
+        const raw = localStorage.getItem('vb_serverless_cloud_db_v4');
         if (raw) return JSON.parse(raw);
       } catch (e) {}
 
       const initialDB = {
         users: [
-          { id: 1, name: 'Timo Kaufmann', email: 'admin@vb-display.de', username: 'admin', pw: 'vb2026', role: 'admin', plan: 'trackday', billing_cycle: 'yearly', esp_ip: '192.168.4.1', created_at: '2026-11-19' },
-          { id: 2, name: 'Lukas Brenner', email: 'fahrer@vb-display.de', username: 'fahrer', pw: 'rider2026', role: 'user', plan: 'pro', billing_cycle: 'monthly', esp_ip: '192.168.4.1', created_at: '2026-11-19' }
+          { id: 1, name: 'VB System Admin', email: 'admin@vb-display.de', username: 'admin', pw_hash: 'c9cda8c700e95ece4113961f0727316c98f79f9052bd6ce7b4566a5df1330434', role: 'admin', plan: 'trackday', billing_cycle: 'yearly', esp_ip: '192.168.4.1', created_at: '2026-11-19' },
+          { id: 2, name: 'Lukas Brenner', email: 'fahrer@vb-display.de', username: 'fahrer', pw_hash: 'bed947adcaa2b0f6a2f1b7a0c95815d7df205ed73a7d9bdebc7c54e782bee96d', role: 'user', plan: 'pro', billing_cycle: 'monthly', esp_ip: '192.168.4.1', created_at: '2026-11-19' }
         ],
         bikes: [
           { id: 1, user_id: 1, name: 'VB Prototyp #01', brand: 'Yamaha', model: 'MT-07 Pure', year: 2025, plate: 'WI-VB 26', odo_km: 12480.4, redline_rpm: 9500, oil_interval_km: 6000, last_oil_km: 10200, chain_interval_km: 800, last_chain_km: 12100, tuv_date: '2027-05', battery_alert_v: 11.8 },
@@ -1714,16 +1707,16 @@
           }
         ],
         promos: [
-          { code: 'FES2027', discount_percent: 100, target_plan: 'trackday', description: 'Projektlizenz Friedrich-Ebert-Schule Wiesbaden (03FT22)' },
+          { code: 'FES2027', discount_percent: 100, target_plan: 'trackday', description: 'Projektlizenz Trackday Ultimate' },
           { code: 'VBRIDER50', discount_percent: 50, target_plan: 'pro', description: '50% Early-Adopter Rabatt' }
         ]
       };
-      localStorage.setItem('vb_serverless_cloud_db_v3', JSON.stringify(initialDB));
+      localStorage.setItem('vb_serverless_cloud_db_v4', JSON.stringify(initialDB));
       return initialDB;
     }
 
     function saveCloudDB(db) {
-      localStorage.setItem('vb_serverless_cloud_db_v3', JSON.stringify(db));
+      localStorage.setItem('vb_serverless_cloud_db_v4', JSON.stringify(db));
       if (googleCloudUrl) {
         fetch(googleCloudUrl, {
           method: 'POST',
@@ -1740,13 +1733,13 @@
         const r = await fetch(googleCloudUrl + '?action=pull');
         const data = await r.json();
         if (data && data.ok && data.db && Array.isArray(data.db.users) && data.db.users.length > 0) {
-          localStorage.setItem('vb_serverless_cloud_db_v3', JSON.stringify(data.db));
+          localStorage.setItem('vb_serverless_cloud_db_v4', JSON.stringify(data.db));
           await loadBootstrap();
         }
       } catch (e) {}
     }
 
-    function serverlessApiHandler(path, method, body) {
+    async function serverlessApiHandler(path, method, body) {
       const db = getCloudDB();
       const uid = Number(localStorage.getItem('vb_cloud_uid') || 1);
       const user = db.users.find(u => u.id === uid) || db.users[0];
@@ -1760,12 +1753,15 @@
       if (path === '/api/auth/login') {
         const ident = String((body && body.identifier) || '').trim().toLowerCase();
         const pw = String((body && body.password) || '').trim();
+        const pwHash = await hashPassword(pw);
         const found = db.users.find(u => u.email.toLowerCase() === ident || u.username.toLowerCase() === ident);
-        if (!found || found.pw !== pw) {
-          throw new Error('Anmeldedaten nicht gefunden. Bitte prüfe deine Eingabe oder registriere ein neues Konto.');
+        if (!found || found.pw_hash !== pwHash) {
+          throw new Error('Anmeldedaten ungültig. Bitte prüfe deine Eingabe oder registriere ein neues Konto.');
         }
         localStorage.setItem('vb_cloud_uid', String(found.id));
-        return { token: 'cloud_tok_' + found.id, user: found };
+        const safeUser = Object.assign({}, found);
+        delete safeUser.pw_hash;
+        return { token: 'cloud_tok_' + found.id, user: safeUser };
       }
 
       if (path === '/api/auth/register') {
@@ -1781,9 +1777,10 @@
           throw new Error('Für diese E-Mail-Adresse existiert bereits ein Konto.');
         }
 
+        const pwHash = await hashPassword(pw);
         const newId = db.users.reduce((m, u) => Math.max(m, u.id), 0) + 1;
         const newUser = {
-          id: newId, name, email, username, pw,
+          id: newId, name, email, username, pw_hash: pwHash,
           role: 'user', plan: 'pro', billing_cycle: 'monthly',
           esp_ip: '192.168.4.1', created_at: nowStr
         };
