@@ -1239,21 +1239,64 @@
           </div>
         </div>
 
-        <!-- Google Cloud Backend Connector -->
-        <div class="card">
-          <div class="card-header">
-            <div>
-              <div class="card-label">GOOGLE CLOUD DATENBANK-SYNCHRONISATION</div>
-              <div class="card-title">Google Pro / Apps Script / Cloud Run Endpunkt</div>
+        <!-- Google Cloud Backend Connector & Live Database Access -->
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-label">ONLINE DATENBANK &amp; GOOGLE SHEETS</div>
+                <div class="card-title">Google Cloud Live-Datenbank</div>
+              </div>
+              <button type="button" class="sec sm" onclick="pullFromGoogleCloud()">Synchronisieren</button>
             </div>
-            <button type="button" class="sec sm" onclick="pullFromGoogleCloud()">Cloud-Stand laden</button>
+            <p style="font-size: 12.5px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 12px;">
+              Verbindet die App mit deinem Google Cloud Backend (`cloud/GoogleCloudBackend.gs`). Alle Accounts, Fahrzeuge, Fahrten und Tickets werden live in einer Google-Sheets-Tabelle (`VB_Connect_Datenbank`) gespeichert.
+            </p>
+            <div class="field">
+              <label for="inpGoogleCloudUrl">Google Apps Script Web-App URL (`.../exec`)</label>
+              <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <input id="inpGoogleCloudUrl" type="text" class="num" style="flex: 1; min-width: 200px;" placeholder="https://script.google.com/macros/s/.../exec" />
+                <button type="button" onclick="saveGoogleCloudEndpoint()">Verbinden</button>
+              </div>
+            </div>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px;">
+              <a id="btnOpenGoogleSheet" href="https://sheets.google.com" target="_blank" rel="noopener" style="text-decoration: none; flex: 1;">
+                <button type="button" class="sec sm" style="width: 100%;">Google Sheets Datenbank öffnen ↗</button>
+              </a>
+              <button type="button" class="sec sm" onclick="exportCloudDBJson()">JSON-Backup</button>
+              <button type="button" class="danger sm" onclick="resetProductionDatabase()">DB leeren</button>
+            </div>
           </div>
-          <p style="font-size: 12.5px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 12px;">
-            Optionaler Live-Sync mit deiner Google-Cloud-Datenbank (`cloud/GoogleCloudBackend.gs`). Alle neu registrierten Accounts, Fahrten und Tickets werden automatisch abgeglichen.
-          </p>
-          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-            <input id="inpGoogleCloudUrl" type="text" class="num" style="flex: 1; min-width: 240px;" placeholder="https://script.google.com/macros/s/.../exec" />
-            <button type="button" onclick="saveGoogleCloudEndpoint()">Endpunkt speichern</button>
+
+          <!-- Project Email & Support Mail System -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-label">PROJEKT E-MAIL-SYSTEM</div>
+                <div class="card-title">Info- &amp; Support-Mail Versand</div>
+              </div>
+              <span class="tag green">AUTO-MAIL AKTIV</span>
+            </div>
+            <form onsubmit="handleAdminSendEmail(event)">
+              <div class="field">
+                <label for="mailRecipient">Empfänger</label>
+                <select id="mailRecipient">
+                  <option value="ALL">An alle registrierten Benutzer (Rundmail)</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="mailSubject">Betreff</label>
+                <input id="mailSubject" type="text" required placeholder="z. B. Firmware-Update v2.5 &amp; Wartungshinweis" />
+              </div>
+              <div class="field">
+                <label for="mailBody">Nachricht</label>
+                <textarea id="mailBody" rows="2" required placeholder="Deine Nachricht an die Benutzer..."></textarea>
+              </div>
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+                <span id="mailStatusMsg" style="font-size: 11.5px; color: var(--text-secondary);">Willkommens- &amp; Ticket-Mails laufen automatisch.</span>
+                <button type="submit" class="sm">E-Mail senden</button>
+              </div>
+            </form>
           </div>
         </div>
 
@@ -1655,74 +1698,51 @@
       return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
     }
 
+    let googleSheetUrl = localStorage.getItem('vb_google_sheet_url') || 'https://drive.google.com';
+
     function getCloudDB() {
       try {
-        const raw = localStorage.getItem('vb_serverless_cloud_db_v4');
+        const raw = localStorage.getItem('vb_production_cloud_db_v1');
         if (raw) return JSON.parse(raw);
       } catch (e) {}
 
+      // Clean Production Database — ZERO example/dummy trips, bikes, or tickets
       const initialDB = {
+        version: '3.0.0-production-clean',
         users: [
-          { id: 1, name: 'VB System Admin', email: 'admin@vb-display.de', username: 'admin', pw_hash: 'c9cda8c700e95ece4113961f0727316c98f79f9052bd6ce7b4566a5df1330434', role: 'admin', plan: 'trackday', billing_cycle: 'yearly', esp_ip: '192.168.4.1', created_at: '2026-11-19' },
-          { id: 2, name: 'Lukas Brenner', email: 'fahrer@vb-display.de', username: 'fahrer', pw_hash: 'bed947adcaa2b0f6a2f1b7a0c95815d7df205ed73a7d9bdebc7c54e782bee96d', role: 'user', plan: 'pro', billing_cycle: 'monthly', esp_ip: '192.168.4.1', created_at: '2026-11-19' }
-        ],
-        bikes: [
-          { id: 1, user_id: 1, name: 'VB Prototyp #01', brand: 'Yamaha', model: 'MT-07 Pure', year: 2025, plate: 'WI-VB 26', odo_km: 12480.4, redline_rpm: 9500, oil_interval_km: 6000, last_oil_km: 10200, chain_interval_km: 800, last_chain_km: 12100, tuv_date: '2027-05', battery_alert_v: 11.8 },
-          { id: 2, user_id: 1, name: 'Trackbike RS', brand: 'Aprilia', model: 'RS 660 Extrema', year: 2026, plate: 'WI-RS 66', odo_km: 4320.0, redline_rpm: 10500, oil_interval_km: 4000, last_oil_km: 3800, chain_interval_km: 500, last_chain_km: 4150, tuv_date: '2028-03', battery_alert_v: 12.0 }
-        ],
-        trips: [
           {
-            id: 1, user_id: 1, bike_id: 1, title: 'Großer Feldberg & Applauskurve', route_name: 'Wiesbaden → Hohe Mark → Feldberg (881m)',
-            started_at: '2026-11-16 16:20', duration_sec: 3240, distance_km: 68.4, avg_speed_kmh: 76.0, max_speed_kmh: 148.5, max_rpm: 10150,
-            redline_hits: 9, zero_to_hundred_sec: 3.7, max_lean_deg: 42.0, max_g_force: 0.94, avg_temp_c: 84, max_temp_c: 94, min_bat_v: 13.8,
-            weather: '18°C • Trocken', telemetry: generateCloudDemoTelemetry('feldberg')
-          },
-          {
-            id: 2, user_id: 1, bike_id: 1, title: 'Wispertal Kurven-Etappe L3033', route_name: 'Bad Schwalbach → Wispersee → Lorch am Rhein',
-            started_at: '2026-11-17 14:10', duration_sec: 2640, distance_km: 51.8, avg_speed_kmh: 70.6, max_speed_kmh: 128.4, max_rpm: 9480,
-            redline_hits: 5, zero_to_hundred_sec: 3.9, max_lean_deg: 45.0, max_g_force: 0.98, avg_temp_c: 81, max_temp_c: 89, min_bat_v: 13.9,
-            weather: '16°C • Sonnig', telemetry: generateCloudDemoTelemetry('wispertal')
-          },
-          {
-            id: 3, user_id: 1, bike_id: 2, title: 'Hockenheimring GP-Kurs Trackday', route_name: 'Hockenheimring Baden-Württemberg (Parabolika)',
-            started_at: '2026-11-18 10:30', duration_sec: 1500, distance_km: 45.7, avg_speed_kmh: 109.6, max_speed_kmh: 214.0, max_rpm: 11450,
-            redline_hits: 24, zero_to_hundred_sec: 3.3, max_lean_deg: 51.0, max_g_force: 1.24, avg_temp_c: 91, max_temp_c: 102, min_bat_v: 13.7,
-            weather: '21°C • Asphalt 32°C', telemetry: generateCloudDemoTelemetry('hockenheim')
-          },
-          {
-            id: 4, user_id: 1, bike_id: 1, title: 'Rheingau Sunset B42 Panorama', route_name: 'Wiesbaden-Schierstein → Eltville → Rüdesheim',
-            started_at: '2026-11-19 17:45', duration_sec: 2100, distance_km: 39.2, avg_speed_kmh: 67.2, max_speed_kmh: 124.0, max_rpm: 8900,
-            redline_hits: 2, zero_to_hundred_sec: 4.1, max_lean_deg: 36.0, max_g_force: 0.81, avg_temp_c: 80, max_temp_c: 86, min_bat_v: 14.0,
-            weather: '15°C • Klar', telemetry: generateCloudDemoTelemetry('rheingau')
+            id: 1,
+            name: 'VB System Admin',
+            email: 'admin@vb-display.de',
+            username: 'admin',
+            pw_hash: 'c9cda8c700e95ece4113961f0727316c98f79f9052bd6ce7b4566a5df1330434',
+            role: 'admin',
+            plan: 'trackday',
+            billing_cycle: 'yearly',
+            esp_ip: '192.168.4.1',
+            created_at: new Date().toISOString().slice(0, 10)
           }
         ],
-        tickets: [
-          {
-            id: 1, user_id: 2, user_name: 'Lukas Brenner', subject: 'GPS Kaltstart-Dauer nach Tunnel', category: 'hardware',
-            priority: 'normal', status: 'answered', created_at: '2026-11-18 11:20',
-            messages: [
-              { sender_name: 'Lukas Brenner', sender_role: 'user', message: 'Wie schnell findet das NEO-6M nach einem Tunnel wieder den Satelliten-Fix?', created_at: '2026-11-18 11:20' },
-              { sender_name: 'VB Engineering Support', sender_role: 'admin', message: 'Dank Backup-Batterie auf dem GPS-Modul dauert ein Warm-/Hot-Start nach Tunnelausfahrt unter 2 Sekunden.', created_at: '2026-11-18 11:45' }
-            ]
-          }
-        ],
+        bikes: [],
+        trips: [],
+        tickets: [],
         promos: [
           { code: 'FES2027', discount_percent: 100, target_plan: 'trackday', description: 'Projektlizenz Trackday Ultimate' },
           { code: 'VBRIDER50', discount_percent: 50, target_plan: 'pro', description: '50% Early-Adopter Rabatt' }
         ]
       };
-      localStorage.setItem('vb_serverless_cloud_db_v4', JSON.stringify(initialDB));
+      localStorage.setItem('vb_production_cloud_db_v1', JSON.stringify(initialDB));
       return initialDB;
     }
 
-    function saveCloudDB(db) {
-      localStorage.setItem('vb_serverless_cloud_db_v4', JSON.stringify(db));
+    function saveCloudDB(db, mailEvent = null) {
+      localStorage.setItem('vb_production_cloud_db_v1', JSON.stringify(db));
       if (googleCloudUrl) {
         fetch(googleCloudUrl, {
           method: 'POST',
           mode: 'no-cors',
           headers: { 'Content-Type': 'text/plain' },
-          body: JSON.stringify({ action: 'sync_db', db })
+          body: JSON.stringify({ action: 'sync_db', db, mailEvent })
         }).catch(() => {});
       }
     }
@@ -1732,11 +1752,35 @@
       try {
         const r = await fetch(googleCloudUrl + '?action=pull');
         const data = await r.json();
-        if (data && data.ok && data.db && Array.isArray(data.db.users) && data.db.users.length > 0) {
-          localStorage.setItem('vb_serverless_cloud_db_v4', JSON.stringify(data.db));
-          await loadBootstrap();
+        if (data && data.ok) {
+          if (data.sheet_url) {
+            googleSheetUrl = data.sheet_url;
+            localStorage.setItem('vb_google_sheet_url', googleSheetUrl);
+            const btnSheet = document.getElementById('btnOpenGoogleSheet');
+            if (btnSheet) btnSheet.href = googleSheetUrl;
+          }
+          if (data.db && Array.isArray(data.db.users) && data.db.users.length > 0) {
+            localStorage.setItem('vb_production_cloud_db_v1', JSON.stringify(data.db));
+            if (authToken) await loadBootstrap();
+          }
         }
       } catch (e) {}
+    }
+
+    function exportCloudDBJson() {
+      const db = getCloudDB();
+      const blob = new Blob([JSON.stringify(db, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'VB_Connect_Cloud_DB.json';
+      a.click();
+    }
+
+    function resetProductionDatabase() {
+      localStorage.removeItem('vb_production_cloud_db_v1');
+      const fresh = getCloudDB();
+      saveCloudDB(fresh);
+      loadBootstrap();
     }
 
     async function serverlessApiHandler(path, method, body) {
@@ -1791,33 +1835,17 @@
         db.bikes.push({
           id: bikeId, user_id: newId, name: bikeModel,
           brand: parts[0] || 'Custom', model: parts.slice(1).join(' ') || bikeModel,
-          year: 2025, plate: 'WI-VB ' + (20 + newId), odo_km: 1450.0, redline_rpm: 9500,
-          oil_interval_km: 6000, last_oil_km: 450.0, chain_interval_km: 800, last_chain_km: 1200.0,
+          year: 2025, plate: 'WI-VB ' + (20 + newId), odo_km: 0.0, redline_rpm: 9500,
+          oil_interval_km: 6000, last_oil_km: 0.0, chain_interval_km: 800, last_chain_km: 0.0,
           tuv_date: '2027-06', battery_alert_v: 11.8
         });
 
-        // Give every newly registered account 2 real satellite tours so they can immediately test route telemetry & record new ones
-        const baseTripId = db.trips.reduce((m, t) => Math.max(m, t.id), 0);
-        db.trips.unshift(
-          {
-            id: baseTripId + 1, user_id: newId, bike_id: bikeId,
-            title: 'Taunus Kalibrierungs-Fahrt', route_name: 'Wiesbaden → Hohe Mark → Großer Feldberg',
-            started_at: nowStr, duration_sec: 2820, distance_km: 58.4, avg_speed_kmh: 74.5, max_speed_kmh: 146.0,
-            max_rpm: 9850, redline_hits: 4, zero_to_hundred_sec: 3.8, max_lean_deg: 41.0, max_g_force: 0.91,
-            avg_temp_c: 83, max_temp_c: 91, min_bat_v: 13.9, weather: '18°C • Klar',
-            telemetry: generateCloudDemoTelemetry('feldberg')
-          },
-          {
-            id: baseTripId + 2, user_id: newId, bike_id: bikeId,
-            title: 'Wispertal Kurven-Etappe', route_name: 'Bad Schwalbach → L3033 → Lorch am Rhein',
-            started_at: nowStr, duration_sec: 2520, distance_km: 49.2, avg_speed_kmh: 70.2, max_speed_kmh: 127.5,
-            max_rpm: 9300, redline_hits: 3, zero_to_hundred_sec: 4.0, max_lean_deg: 44.0, max_g_force: 0.95,
-            avg_temp_c: 81, max_temp_c: 88, min_bat_v: 14.0, weather: '17°C • Trocken',
-            telemetry: generateCloudDemoTelemetry('wispertal')
-          }
-        );
-
-        saveCloudDB(db);
+        saveCloudDB(db, {
+          type: 'register',
+          userName: name,
+          userEmail: email,
+          bikeModel: bikeModel
+        });
         localStorage.setItem('vb_cloud_uid', String(newId));
         return { token: 'cloud_tok_' + newId, user: newUser };
       }
@@ -1921,12 +1949,21 @@
       if (path === '/api/tickets/create') {
         const tid = db.tickets.reduce((m, t) => Math.max(m, t.id), 0) + 1;
         db.tickets.unshift({
-          id: tid, user_id: user.id, user_name: user.name,
+          id: tid, user_id: user.id, user_name: user.name, user_email: user.email,
           subject: body.subject, category: body.category,
           priority: body.priority, status: 'open', created_at: nowStr,
           messages: [{ sender_name: user.name, sender_role: user.role, message: body.message, created_at: nowStr }]
         });
-        saveCloudDB(db);
+        saveCloudDB(db, {
+          type: 'ticket_new',
+          ticketId: tid,
+          userName: user.name,
+          userEmail: user.email,
+          subject: body.subject,
+          category: body.category,
+          priority: body.priority,
+          message: body.message
+        });
         return { ok: true, ticketId: tid };
       }
 
@@ -1937,7 +1974,16 @@
             tk.messages.push({ sender_name: user.name, sender_role: user.role, message: body.message, created_at: nowStr });
           }
           if (body.status) tk.status = body.status;
-          saveCloudDB(db);
+          const ticketOwner = db.users.find(u => u.id === tk.user_id);
+          const recipientEmail = tk.user_email || (ticketOwner ? ticketOwner.email : '');
+          saveCloudDB(db, user.role === 'admin' ? {
+            type: 'ticket_reply',
+            ticketId: tk.id,
+            toEmail: recipientEmail,
+            subject: tk.subject,
+            message: body.message,
+            status: tk.status
+          } : null);
         }
         return { ok: true };
       }
@@ -2522,6 +2568,10 @@
     function renderGarage() {
       const container = document.getElementById('garageListContainer');
       const bikes = appData.bikes || [];
+      if (bikes.length === 0) {
+        container.innerHTML = `<div class="card" style="grid-column: 1 / -1; color: var(--text-secondary); font-size: 13.5px;">Noch kein Motorrad hinterlegt. Klicke oben rechts auf <b>„+ Fahrzeug anlegen“</b>.</div>`;
+        return;
+      }
       container.innerHTML = bikes.map(b => {
         const oilUsed = Math.max(0, b.odo_km - b.last_oil_km);
         const oilRem = Math.max(0, b.oil_interval_km - oilUsed);
@@ -2679,13 +2729,59 @@
     }
 
     // --- 10. ADMIN SYSTEM & HARDWARE SIMULATOR ---
-    function saveGoogleCloudEndpoint() {
+    async function saveGoogleCloudEndpoint() {
       const inp = document.getElementById('inpGoogleCloudUrl');
       googleCloudUrl = inp ? inp.value.trim() : '';
       localStorage.setItem('vb_google_cloud_url', googleCloudUrl);
       const b = document.getElementById('admCloudBadge');
       if (b) b.textContent = googleCloudUrl ? 'GOOGLE CLOUD SYNC AKTIV' : 'CLOUD ENGINE AKTIV';
       saveCloudDB(getCloudDB());
+      await pullFromGoogleCloud();
+    }
+
+    async function handleAdminSendEmail(e) {
+      e.preventDefault();
+      const recVal = document.getElementById('mailRecipient').value;
+      const subject = document.getElementById('mailSubject').value.trim();
+      const message = document.getElementById('mailBody').value.trim();
+      const statusEl = document.getElementById('mailStatusMsg');
+
+      const allUsers = (appData.admin && appData.admin.users) ? appData.admin.users : [];
+      const recipients = recVal === 'ALL'
+        ? allUsers.map(u => u.email).filter(em => em && em.includes('@'))
+        : [recVal];
+
+      if (!googleCloudUrl) {
+        // Fallback: open native mail client if Google Cloud endpoint is not yet connected
+        window.location.href = `mailto:${recipients.join(',')}?subject=${encodeURIComponent('[VB Connect] ' + subject)}&body=${encodeURIComponent(message)}`;
+        statusEl.textContent = 'E-Mail-Client geöffnet (Verbinde links deine Google Cloud URL für Direktversand).';
+        return;
+      }
+
+      statusEl.style.color = 'var(--accent)';
+      statusEl.textContent = 'Sende E-Mail über Google Cloud...';
+      try {
+        await fetch(googleCloudUrl, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify({
+            action: 'send_mail',
+            recipients,
+            subject,
+            headline: subject,
+            message,
+            mailType: recVal === 'ALL' ? 'BROADCAST' : 'DIRECT_SUPPORT'
+          })
+        });
+        statusEl.style.color = 'var(--green)';
+        statusEl.textContent = `E-Mail an ${recipients.length} Empfänger über Google Cloud versendet.`;
+        document.getElementById('mailSubject').value = '';
+        document.getElementById('mailBody').value = '';
+      } catch (err) {
+        statusEl.style.color = 'var(--red)';
+        statusEl.textContent = 'Fehler beim Versand.';
+      }
     }
 
     function renderAdminCenter() {
@@ -2693,6 +2789,14 @@
       if (!adm) return;
       const gInp = document.getElementById('inpGoogleCloudUrl');
       if (gInp) gInp.value = googleCloudUrl;
+      const btnSheet = document.getElementById('btnOpenGoogleSheet');
+      if (btnSheet) btnSheet.href = googleSheetUrl;
+
+      const mailSel = document.getElementById('mailRecipient');
+      if (mailSel) {
+        mailSel.innerHTML = `<option value="ALL">An alle registrierten Benutzer (${(adm.users || []).length} Konten)</option>` +
+          (adm.users || []).map(u => `<option value="${u.email}">${u.name} (${u.email})</option>`).join('');
+      }
 
       document.getElementById('admKpiUsers').textContent = adm.kpis.totalUsers;
       document.getElementById('admKpiTrips').textContent = adm.kpis.totalTrips;
@@ -3075,6 +3179,18 @@
 
       requestAnimationFrame(renderCockpitLoop);
     }
+
+    // Auto-connect & sync with Online Google Cloud Database on startup
+    (function initOnlineCloudSync() {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('cloud')) {
+        googleCloudUrl = params.get('cloud').trim();
+        localStorage.setItem('vb_google_cloud_url', googleCloudUrl);
+      }
+      if (googleCloudUrl) {
+        pullFromGoogleCloud();
+      }
+    })();
 
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('./sw.js').catch(() => {});
