@@ -939,7 +939,7 @@
             </div>
           </div>
 
-          <!-- Display Theme & Shift-Light Quick Bar -->
+          <!-- Display Theme, Customizing & Shift-Light Quick Bar -->
           <div style="max-width: 580px; margin: 14px auto 0; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;">
             <div class="seg-group">
               <button type="button" id="segDispDark" class="seg-btn active" onclick="setDisplayTheme(true)">Display Dark</button>
@@ -947,10 +947,45 @@
             </div>
 
             <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+              <button type="button" class="sec sm" onclick="toggleDisplayCustomizing()">Display-Customizing</button>
               <button type="button" class="sec sm" onclick="sendEspControl({ tripReset: 1 })">Trip 0.0</button>
               <button type="button" class="sec sm" onclick="setAdminSimMode(liveState.simMode === 2 ? 0 : 2)">
                 <span id="btnQuickAutopilot">Autopilot Testfahrt</span>
               </button>
+            </div>
+          </div>
+
+          <!-- Display Customizing Panel (Logo, Shift-Light RPM, Accent & Shift Colors, Units) -->
+          <div id="panelDisplayCustomizing" class="hide" style="max-width: 580px; margin: 14px auto 0; padding-top: 14px; border-top: 1px solid var(--border);">
+            <div class="card-label" style="margin-bottom: 10px;">DISPLAY-CUSTOMIZING (LIVE &amp; ESP32 SYNC)</div>
+            <div class="grid-2">
+              <div class="field">
+                <label for="inpDispTag">Display-Kürzel / Fahrer-Tag</label>
+                <input id="inpDispTag" type="text" maxlength="10" placeholder="z. B. VB-PRO" oninput="applyDisplayCustomizing()" />
+              </div>
+              <div class="field">
+                <label for="selDispUnit">Einheit</label>
+                <select id="selDispUnit" onchange="applyDisplayCustomizing()">
+                  <option value="KM/H">Metrisch (KM/H)</option>
+                  <option value="MPH">Imperial (MPH)</option>
+                </select>
+              </div>
+            </div>
+            <div class="grid-2">
+              <div class="field">
+                <label for="rngDispRedline">Schaltblitz-Drehzahl: <span id="lblDispRedline" class="num">9500</span> rpm</label>
+                <input id="rngDispRedline" type="range" min="6000" max="12000" step="250" value="9500" oninput="applyDisplayCustomizing()" />
+              </div>
+              <div class="field">
+                <label for="selDispAccent">Akzentfarbe</label>
+                <select id="selDispAccent" onchange="applyDisplayCustomizing()">
+                  <option value="#00d7ff">Telemetrie Cyan</option>
+                  <option value="#10b981">Emerald Grün</option>
+                  <option value="#f59e0b">Racing Amber</option>
+                  <option value="#ef4444">Motorsport Rot</option>
+                  <option value="#3b82f6">Cobalt Blau</option>
+                </select>
+              </div>
             </div>
           </div>
         </div>
@@ -1055,7 +1090,7 @@
       </section>
 
       <!-- -----------------------------------------------------------------
-           02 // STRECKEN & GOOGLE MAPS SATELLITE TELEMETRY
+           02 // STRECKEN & GOOGLE MAPS SATELLITE TELEMETRY + FAHRT-VERGLEICH
            ----------------------------------------------------------------- -->
       <section id="viewTrips" class="hide">
         <div class="sec-head">
@@ -1063,7 +1098,16 @@
             <div class="sec-kicker">02 // SATELLITEN-STRECKENANALYSE</div>
             <h1 class="sec-title">Fahrtenbuch &amp; <em>Telemetrie</em></h1>
           </div>
-          <div class="grid-4" style="min-width: min(100%, 480px);">
+          <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+            <div class="seg-group">
+              <button type="button" id="btnTripsSubSingle" class="seg-btn active" onclick="switchTripsSubView('single')">Einzelanalyse</button>
+              <button type="button" id="btnTripsSubCompare" class="seg-btn" onclick="switchTripsSubView('compare')">Fahrt-Vergleich</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="tripsSingleView">
+          <div class="grid-4" style="margin-bottom: 14px;">
             <div class="stat-box" style="padding: 8px 10px;">
               <div class="stat-label">FAHRTEN</div>
               <div id="sumTripsCount" class="stat-value" style="font-size: 15px;">0</div>
@@ -1081,30 +1125,32 @@
               <div id="sumTripsMaxLean" class="stat-value" style="font-size: 15px;">0°</div>
             </div>
           </div>
-        </div>
 
-        <div class="grid-2">
-          <!-- Saved Trips List -->
-          <div class="card">
-            <div class="card-header">
-              <div>
-                <div class="card-label">LOGBUCH</div>
-                <div class="card-title">Gespeicherte Touren</div>
+          <div class="grid-2">
+            <!-- Saved Trips List -->
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-label">LOGBUCH</div>
+                  <div class="card-title">Gespeicherte Touren</div>
+                </div>
+                <button type="button" class="sec sm" onclick="switchTab('Cockpit')">+ Neue Fahrt</button>
               </div>
-              <button type="button" class="sec sm" onclick="switchTab('Cockpit')">+ Neue Fahrt</button>
+              <div id="tripsListContainer"></div>
             </div>
-            <div id="tripsListContainer"></div>
-          </div>
 
-          <!-- Selected Trip Metadata -->
-          <div class="card">
-            <div class="card-header">
-              <div>
-                <div id="detTripRoute" class="card-label">ROUTE</div>
-                <div id="detTripTitle" class="card-title">Fahrt auswählen</div>
+            <!-- Selected Trip Metadata -->
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div id="detTripRoute" class="card-label">ROUTE</div>
+                  <div id="detTripTitle" class="card-title">Fahrt auswählen</div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <span id="detTripDate" class="tag num">--</span>
+                  <button type="button" id="btnShareTripCommunity" class="sec sm hide" onclick="shareSelectedTripToCommunity()">In Community teilen</button>
+                </div>
               </div>
-              <span id="detTripDate" class="tag num">--</span>
-            </div>
 
             <div class="grid-4" style="margin-bottom: 12px;">
               <div class="stat-box">
@@ -1188,20 +1234,172 @@
             <canvas id="tripChartCanvas" width="760" height="190" style="width: 100%; height: 150px; display: block; border-radius: 10px; border: 1px solid var(--border);"></canvas>
           </div>
         </div>
+        </div>
+
+        <!-- Trips Sub-View 2: Fahrt-Vergleich (A vs B) -->
+        <div id="tripsCompareView" class="hide">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-label">TELEMETRIE-VERGLEICH</div>
+                <div class="card-title">Zwei Fahrten direkt vergleichen</div>
+              </div>
+            </div>
+            <div class="grid-2" style="margin-bottom: 14px;">
+              <div class="field">
+                <label for="selCompareA">Fahrt A (Cyan)</label>
+                <select id="selCompareA" onchange="renderTripComparison()"></select>
+              </div>
+              <div class="field">
+                <label for="selCompareB">Fahrt B (Amber)</label>
+                <select id="selCompareB" onchange="renderTripComparison()"></select>
+              </div>
+            </div>
+            <div id="compareDeltaGrid" class="grid-4" style="margin-bottom: 14px;"></div>
+            <canvas id="tripCompareCanvas" width="760" height="210" style="width: 100%; height: 180px; display: block; border-radius: 10px; border: 1px solid var(--border);"></canvas>
+          </div>
+        </div>
       </section>
 
       <!-- -----------------------------------------------------------------
-           03 // GARAGE & MAINTENANCE
+           03 // COMMUNITY HUB (TOUREN, AUSFAHRTEN & KOMMENTARE)
+           ----------------------------------------------------------------- -->
+      <section id="viewCommunity" class="hide">
+        <div class="sec-head">
+          <div>
+            <div class="sec-kicker">03 // FAHRER-NETZWERK &amp; AUSFAHRTEN</div>
+            <h1 class="sec-title">Community <em>Hub</em></h1>
+          </div>
+          <div class="seg-group">
+            <button type="button" id="btnComSubFeed" class="seg-btn active" onclick="switchCommunitySubView('feed')">Feed &amp; Ausfahrten</button>
+            <button type="button" id="btnComSubNew" class="seg-btn" onclick="switchCommunitySubView('new')">+ Beitrag / Treffpunkt</button>
+          </div>
+        </div>
+
+        <div id="comViewFeed">
+          <div id="communityFeedContainer"></div>
+        </div>
+
+        <div id="comViewNew" class="hide">
+          <div class="card" style="max-width: 620px;">
+            <div class="card-label">NEUER COMMUNITY-BEITRAG</div>
+            <div class="card-title" style="margin: 4px 0 14px;">Ausfahrt planen oder Tour teilen</div>
+            <form onsubmit="handleCreateCommunityPost(event)">
+              <div class="grid-2">
+                <div class="field">
+                  <label for="comPostType">Kategorie</label>
+                  <select id="comPostType">
+                    <option value="ride">Gemeinsame Ausfahrt / Treffpunkt</option>
+                    <option value="tour">Tour-Empfehlung / Bericht</option>
+                    <option value="setup">Display &amp; Bike Setup</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="comPostLocation">Treffpunkt / Region</label>
+                  <input id="comPostLocation" type="text" required placeholder="z. B. Großer Feldberg / Taunus" />
+                </div>
+              </div>
+              <div class="field">
+                <label for="comPostTitle">Titel</label>
+                <input id="comPostTitle" type="text" required placeholder="z. B. Sonntagstour Wispertal 14:00 Uhr" />
+              </div>
+              <div class="field">
+                <label for="comPostBody">Beschreibung</label>
+                <textarea id="comPostBody" rows="3" required placeholder="Treffpunkt, Tempo, geplante Strecke..."></textarea>
+              </div>
+              <button type="submit">In Community veröffentlichen</button>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      <!-- -----------------------------------------------------------------
+           04 // GARAGE, WARTUNG & SAISON-KOSTENBUCH
            ----------------------------------------------------------------- -->
       <section id="viewGarage" class="hide">
         <div class="sec-head">
           <div>
-            <div class="sec-kicker">03 // FAHRZEUGBESTAND &amp; WARTUNG</div>
+            <div class="sec-kicker">04 // FAHRZEUGBESTAND, WARTUNG &amp; KOSTEN</div>
             <h1 class="sec-title">Motorrad <em>Garage</em></h1>
           </div>
-          <button type="button" onclick="document.getElementById('dlgAddBike').showModal()">+ Fahrzeug anlegen</button>
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <div class="seg-group">
+              <button type="button" id="btnGarSubBikes" class="seg-btn active" onclick="switchGarageSubView('bikes')">Fahrzeuge</button>
+              <button type="button" id="btnGarSubCosts" class="seg-btn" onclick="switchGarageSubView('costs')">Saison &amp; Kostenbuch</button>
+            </div>
+            <button type="button" onclick="document.getElementById('dlgAddBike').showModal()">+ Fahrzeug anlegen</button>
+          </div>
         </div>
-        <div id="garageListContainer" class="grid-2"></div>
+
+        <div id="garViewBikes">
+          <div id="garageListContainer" class="grid-2"></div>
+        </div>
+
+        <div id="garViewCosts" class="hide">
+          <div class="grid-4" style="margin-bottom: 14px;">
+            <div class="stat-box">
+              <div class="stat-label">SAISON-KILOMETER</div>
+              <div id="statSeasonKm" class="stat-value">0 km</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">GESAMTKOSTEN</div>
+              <div id="statSeasonCost" class="stat-value">0,00 €</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">Ø VERBRAUCH</div>
+              <div id="statSeasonFuel" class="stat-value">-- l/100</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">KOSTEN PRO KM</div>
+              <div id="statSeasonPerKm" class="stat-value">-- €/km</div>
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-label">NEUER EINTRAG</div>
+              <div class="card-title" style="margin: 4px 0 12px;">Tankstopp oder Service erfassen</div>
+              <form onsubmit="handleAddExpense(event)">
+                <div class="grid-2">
+                  <div class="field">
+                    <label for="expCategory">Kategorie</label>
+                    <select id="expCategory">
+                      <option value="Tanken">Tanken (Sprit)</option>
+                      <option value="Wartung">Wartung / Ölservice</option>
+                      <option value="Reifen">Reifen / Verschleiß</option>
+                      <option value="Versicherung">Versicherung / Steuer</option>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label for="expAmount">Betrag (€)</label>
+                    <input id="expAmount" type="number" step="0.01" min="0.1" required placeholder="24.50" />
+                  </div>
+                </div>
+                <div class="grid-2">
+                  <div class="field">
+                    <label for="expLiters">Liter (nur bei Tanken)</label>
+                    <input id="expLiters" type="number" step="0.1" min="0" value="0" />
+                  </div>
+                  <div class="field">
+                    <label for="expDistKm">Gefahrene km seit letztem Stopp</label>
+                    <input id="expDistKm" type="number" step="1" min="0" value="220" />
+                  </div>
+                </div>
+                <div class="field">
+                  <label for="expNote">Notiz</label>
+                  <input id="expNote" type="text" placeholder="z. B. Super Plus / Kettenkit" />
+                </div>
+                <button type="submit" style="width: 100%;">Eintrag speichern</button>
+              </form>
+            </div>
+
+            <div class="card">
+              <div class="card-label">KOSTENHISTORIE</div>
+              <div class="card-title" style="margin: 4px 0 12px;">Erfasste Ausgaben</div>
+              <div id="expensesListContainer"></div>
+            </div>
+          </div>
+        </div>
       </section>
 
       <!-- -----------------------------------------------------------------
@@ -1757,6 +1955,16 @@
         <span>Strecken</span>
       </button>
 
+      <button type="button" class="tab-btn" data-tab="Community" onclick="switchTab('Community')">
+        <svg class="ico" viewBox="0 0 24 24">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+          <circle cx="9" cy="7" r="4"></circle>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+        </svg>
+        <span>Community</span>
+      </button>
+
       <button type="button" class="tab-btn" data-tab="Garage" onclick="switchTab('Garage')">
         <svg class="ico" viewBox="0 0 24 24">
           <circle cx="5.5" cy="17.5" r="3.5"></circle>
@@ -1840,8 +2048,13 @@
       clockMinute: 45,
       nightMode: localStorage.getItem('vb_display_dark') !== 'false', // Default Dark Mode, false = Display White Mode
       simMode: 0,
-      autoTime: 0
+      autoTime: 0,
+      customTag: localStorage.getItem('vb_disp_tag') || '',
+      customUnit: localStorage.getItem('vb_disp_unit') || 'KM/H',
+      customAccent: localStorage.getItem('vb_disp_accent') || ''
     };
+    const savedRedline = Number(localStorage.getItem('vb_disp_redline'));
+    if (savedRedline >= 6000 && savedRedline <= 12000) liveState.redlineRpm = savedRedline;
 
     const recState = {
       active: false,
@@ -2016,6 +2229,8 @@
           const parsed = JSON.parse(raw);
           if (!parsed.session_epoch) parsed.session_epoch = 100;
           if (!Array.isArray(parsed.audit_log)) parsed.audit_log = [];
+          if (!Array.isArray(parsed.community_posts)) parsed.community_posts = [];
+          if (!Array.isArray(parsed.expenses)) parsed.expenses = [];
           return parsed;
         }
       } catch (e) {}
@@ -2055,6 +2270,8 @@
         bikes: [],
         trips: [],
         tickets: [],
+        community_posts: [],
+        expenses: [],
         audit_log: [
           {
             id: 1,
@@ -2093,6 +2310,8 @@
         if (data && data.ok && data.db && Array.isArray(data.db.users) && data.db.users.length > 0) {
           if (!data.db.session_epoch) data.db.session_epoch = 100;
           if (!Array.isArray(data.db.audit_log)) data.db.audit_log = [];
+          if (!Array.isArray(data.db.community_posts)) data.db.community_posts = [];
+          if (!Array.isArray(data.db.expenses)) data.db.expenses = [];
           localStorage.setItem('vb_secure_vault_v5', JSON.stringify(data.db));
           if (reloadUI && authToken) await loadBootstrap();
         }
@@ -2289,11 +2508,16 @@
         let mrr = 0;
         db.users.forEach(u => { if (u.plan === 'pro') mrr += 4.99; else if (u.plan === 'trackday') mrr += 9.99; });
         const totalKm = db.trips.reduce((s, t) => s + t.distance_km, 0);
+        if (!Array.isArray(db.community_posts)) db.community_posts = [];
+        if (!Array.isArray(db.expenses)) db.expenses = [];
+        const userExpenses = db.expenses.filter(e => e.user_id === user.id);
         return {
           user,
           bikes: userBikes,
           trips: userTrips,
           tickets: userTickets,
+          communityPosts: db.community_posts,
+          expenses: userExpenses,
           admin: isStaff ? {
             users: db.users,
             allBikes: db.bikes,
@@ -2459,6 +2683,117 @@
         if (targetBike) {
           db.bikes = db.bikes.filter(b => b.id !== bikeId);
           appendAuditLog(db, 'ADMIN_BIKE_DELETED', user.email, `Deleted bike #${bikeId} (${targetBike.name} / ${targetBike.plate})`);
+          saveCloudDB(db);
+        }
+        return { ok: true };
+      }
+
+      if (path === '/api/community/create') {
+        if (!Array.isArray(db.community_posts)) db.community_posts = [];
+        const title = String(body.title || '').trim();
+        const location = String(body.location || '').trim();
+        const text = String(body.body || '').trim();
+        if (!title || !text) throw new Error('Titel und Beschreibung erforderlich.');
+        const newPost = {
+          id: Math.max(0, ...db.community_posts.map(p => p.id)) + 1,
+          user_id: user.id,
+          author_name: user.name || user.username,
+          author_role: user.role || 'user',
+          type: String(body.type || 'ride'),
+          location: location || 'Deutschland',
+          title,
+          body: text,
+          trip_summary: body.tripSummary || null,
+          likes: [],
+          joins: body.type === 'ride' ? [user.id] : [],
+          comments: [],
+          created_at: new Date().toISOString().slice(0, 16).replace('T', ' ')
+        };
+        db.community_posts.push(newPost);
+        saveCloudDB(db);
+        return { ok: true, post: newPost };
+      }
+
+      if (path === '/api/community/like') {
+        if (!Array.isArray(db.community_posts)) db.community_posts = [];
+        const post = db.community_posts.find(p => p.id === Number(body.postId));
+        if (post) {
+          if (!Array.isArray(post.likes)) post.likes = [];
+          const idx = post.likes.indexOf(user.id);
+          if (idx >= 0) post.likes.splice(idx, 1);
+          else post.likes.push(user.id);
+          saveCloudDB(db);
+        }
+        return { ok: true };
+      }
+
+      if (path === '/api/community/join') {
+        if (!Array.isArray(db.community_posts)) db.community_posts = [];
+        const post = db.community_posts.find(p => p.id === Number(body.postId));
+        if (post) {
+          if (!Array.isArray(post.joins)) post.joins = [];
+          const idx = post.joins.indexOf(user.id);
+          if (idx >= 0) post.joins.splice(idx, 1);
+          else post.joins.push(user.id);
+          saveCloudDB(db);
+        }
+        return { ok: true };
+      }
+
+      if (path === '/api/community/comment') {
+        if (!Array.isArray(db.community_posts)) db.community_posts = [];
+        const post = db.community_posts.find(p => p.id === Number(body.postId));
+        const text = String(body.text || '').trim();
+        if (post && text) {
+          if (!Array.isArray(post.comments)) post.comments = [];
+          post.comments.push({
+            id: Date.now(),
+            user_id: user.id,
+            author_name: user.name || user.username,
+            text,
+            created_at: new Date().toISOString().slice(0, 16).replace('T', ' ')
+          });
+          saveCloudDB(db);
+        }
+        return { ok: true };
+      }
+
+      if (path === '/api/community/delete') {
+        if (!Array.isArray(db.community_posts)) db.community_posts = [];
+        const postId = Number(body.postId);
+        const post = db.community_posts.find(p => p.id === postId);
+        if (post && (post.user_id === user.id || isStaff)) {
+          db.community_posts = db.community_posts.filter(p => p.id !== postId);
+          saveCloudDB(db);
+        }
+        return { ok: true };
+      }
+
+      if (path === '/api/expenses/add') {
+        if (!Array.isArray(db.expenses)) db.expenses = [];
+        const amount = Number(body.amount);
+        if (!amount || amount <= 0) throw new Error('Gültiger Betrag erforderlich.');
+        const newExp = {
+          id: Math.max(0, ...db.expenses.map(e => e.id)) + 1,
+          user_id: user.id,
+          category: String(body.category || 'Tanken'),
+          amount: Number(amount.toFixed(2)),
+          liters: Math.max(0, Number(body.liters) || 0),
+          dist_km: Math.max(0, Number(body.distKm) || 0),
+          note: String(body.note || '').trim(),
+          created_at: new Date().toISOString().slice(0, 10)
+        };
+        db.expenses.push(newExp);
+        saveCloudDB(db);
+        return { ok: true, expense: newExp };
+      }
+
+      if (path === '/api/expenses/delete') {
+        if (!Array.isArray(db.expenses)) db.expenses = [];
+        const expId = Number(body.expenseId);
+        const target = db.expenses.find(e => e.id === expId);
+        if (target && target.user_id === user.id) {
+          db.expenses = db.expenses.filter(e => e.id !== expId);
           saveCloudDB(db);
         }
         return { ok: true };
@@ -2987,12 +3322,16 @@
 
         renderBikeSelect();
         renderTripsList();
+        populateCompareSelects();
+        renderCommunityFeed();
         renderGarage();
+        renderExpensesAndSeason();
+        initDisplayCustomizingInputs();
         renderSubscriptionAndSupport();
         if (isStaff && data.admin) renderSupportDesk();
         if (isAdmin && data.admin) renderAdminCenter();
 
-        const anyVisible = ['Cockpit', 'Trips', 'Garage', 'SubSupport', 'SupportDesk', 'Admin'].some(
+        const anyVisible = ['Cockpit', 'Trips', 'Community', 'Garage', 'SubSupport', 'SupportDesk', 'Admin'].some(
           t => !document.getElementById('view' + t).classList.contains('hide')
         );
         if (!anyVisible) switchTab('Cockpit');
@@ -3002,7 +3341,7 @@
     }
 
     function switchTab(tabName) {
-      ['Cockpit', 'Trips', 'Garage', 'SubSupport', 'SupportDesk', 'Admin'].forEach(t => {
+      ['Cockpit', 'Trips', 'Community', 'Garage', 'SubSupport', 'SupportDesk', 'Admin'].forEach(t => {
         const el = document.getElementById('view' + t);
         if (el) el.classList.toggle('hide', t !== tabName);
       });
@@ -3132,7 +3471,9 @@
     function updateLiveTelemetryCards() {
       const elSpd = document.getElementById('kpiLiveSpd');
       if (!elSpd) return;
-      elSpd.textContent = `${Math.round(liveState.displaySpeed)} km/h`;
+      const isMph = liveState.customUnit === 'MPH';
+      const spdDisp = isMph ? liveState.displaySpeed * 0.621371 : liveState.displaySpeed;
+      elSpd.textContent = `${Math.round(spdDisp)} ${isMph ? 'mph' : 'km/h'}`;
       document.getElementById('kpiLiveGps').textContent = liveState.gpsFix ? `GPS Fix (${liveState.gpsSatellites} Sat.)` : 'Kein GPS Fix';
       document.getElementById('kpiLiveRpm').textContent = `${Math.round(liveState.displayRpm)} rpm`;
       document.getElementById('kpiLiveRedline').textContent = `Limit: ${liveState.redlineRpm} rpm`;
@@ -3267,10 +3608,361 @@
       `).join('');
     }
 
+    function initDisplayCustomizingInputs() {
+      const tag = document.getElementById('inpDispTag');
+      const unit = document.getElementById('selDispUnit');
+      const redline = document.getElementById('rngDispRedline');
+      const lblRed = document.getElementById('lblDispRedline');
+      const accent = document.getElementById('selDispAccent');
+      if (tag) tag.value = liveState.customTag || '';
+      if (unit) unit.value = liveState.customUnit || 'KM/H';
+      if (redline) redline.value = String(liveState.redlineRpm || 9500);
+      if (lblRed) lblRed.textContent = String(liveState.redlineRpm || 9500);
+      if (accent) accent.value = liveState.customAccent || '#00d7ff';
+    }
+
+    function toggleDisplayCustomizing() {
+      const panel = document.getElementById('panelDisplayCustomizing');
+      if (!panel) return;
+      panel.classList.toggle('hide');
+      if (!panel.classList.contains('hide')) initDisplayCustomizingInputs();
+    }
+
+    function applyDisplayCustomizing() {
+      const tag = (document.getElementById('inpDispTag')?.value || '').trim().slice(0, 10);
+      const unit = document.getElementById('selDispUnit')?.value || 'KM/H';
+      const redline = Number(document.getElementById('rngDispRedline')?.value || 9500);
+      const accent = document.getElementById('selDispAccent')?.value || '';
+      const lblRed = document.getElementById('lblDispRedline');
+      if (lblRed) lblRed.textContent = String(redline);
+
+      liveState.customTag = tag;
+      liveState.customUnit = unit;
+      liveState.redlineRpm = redline;
+      liveState.customAccent = accent;
+
+      localStorage.setItem('vb_disp_tag', tag);
+      localStorage.setItem('vb_disp_unit', unit);
+      localStorage.setItem('vb_disp_redline', String(redline));
+      localStorage.setItem('vb_disp_accent', accent);
+
+      sendEspControl({ tag, unit, redline, accent });
+      updateLiveTelemetryCards();
+    }
+
+    function switchTripsSubView(sub) {
+      const isCompare = sub === 'compare';
+      document.getElementById('tripsSingleView')?.classList.toggle('hide', isCompare);
+      document.getElementById('tripsCompareView')?.classList.toggle('hide', !isCompare);
+      document.getElementById('btnTripsSubSingle')?.classList.toggle('active', !isCompare);
+      document.getElementById('btnTripsSubCompare')?.classList.toggle('active', isCompare);
+      if (isCompare) {
+        populateCompareSelects();
+        renderTripComparison();
+      }
+    }
+
+    function populateCompareSelects() {
+      const selA = document.getElementById('selCompareA');
+      const selB = document.getElementById('selCompareB');
+      if (!selA || !selB) return;
+      const trips = appData.trips || [];
+      if (trips.length === 0) {
+        selA.innerHTML = '<option value="">Keine Fahrten vorhanden</option>';
+        selB.innerHTML = '<option value="">Keine Fahrten vorhanden</option>';
+        return;
+      }
+      const prevA = selA.value;
+      const prevB = selB.value;
+      const opts = trips.map(t => `<option value="${t.id}">${escHtml(t.title)} (${t.distance_km.toFixed(1)} km)</option>`).join('');
+      selA.innerHTML = opts;
+      selB.innerHTML = opts;
+      selA.value = trips.some(t => String(t.id) === prevA) ? prevA : String(trips[0].id);
+      selB.value = trips.some(t => String(t.id) === prevB) ? prevB : String(trips[Math.min(1, trips.length - 1)].id);
+    }
+
+    function renderTripComparison() {
+      const grid = document.getElementById('compareDeltaGrid');
+      const cvs = document.getElementById('tripCompareCanvas');
+      if (!grid || !cvs) return;
+      const trips = appData.trips || [];
+      const tripA = trips.find(t => String(t.id) === document.getElementById('selCompareA')?.value);
+      const tripB = trips.find(t => String(t.id) === document.getElementById('selCompareB')?.value);
+      if (!tripA || !tripB) {
+        grid.innerHTML = '<div class="muted" style="grid-column: 1 / -1;">Mindestens eine gespeicherte Fahrt erforderlich.</div>';
+        return;
+      }
+      const fmtDelta = (val, unit, dec = 1) => {
+        const sign = val > 0 ? '+' : '';
+        const col = val > 0 ? 'var(--green)' : (val < 0 ? 'var(--amber)' : 'var(--text-muted)');
+        return `<span style="color:${col};">${sign}${val.toFixed(dec)} ${unit}</span>`;
+      };
+      grid.innerHTML = `
+        <div class="stat-box">
+          <div class="stat-label">DISTANZ (A VS B)</div>
+          <div class="stat-value num">${tripA.distance_km.toFixed(1)} vs ${tripB.distance_km.toFixed(1)} km</div>
+          <div class="muted num" style="font-size:11px; margin-top:4px;">Delta: ${fmtDelta(tripA.distance_km - tripB.distance_km, 'km')}</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Ø TEMPO</div>
+          <div class="stat-value num">${tripA.avg_speed_kmh.toFixed(1)} vs ${tripB.avg_speed_kmh.toFixed(1)}</div>
+          <div class="muted num" style="font-size:11px; margin-top:4px;">Delta: ${fmtDelta(tripA.avg_speed_kmh - tripB.avg_speed_kmh, 'km/h')}</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">MAX TEMPO</div>
+          <div class="stat-value num">${tripA.max_speed_kmh.toFixed(0)} vs ${tripB.max_speed_kmh.toFixed(0)}</div>
+          <div class="muted num" style="font-size:11px; margin-top:4px;">Delta: ${fmtDelta(tripA.max_speed_kmh - tripB.max_speed_kmh, 'km/h', 0)}</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">MAX SCHRÄGLAGE</div>
+          <div class="stat-value num">${(tripA.max_lean_deg || 0).toFixed(0)}° vs ${(tripB.max_lean_deg || 0).toFixed(0)}°</div>
+          <div class="muted num" style="font-size:11px; margin-top:4px;">Delta: ${fmtDelta((tripA.max_lean_deg || 0) - (tripB.max_lean_deg || 0), '°', 0)}</div>
+        </div>
+      `;
+
+      const ctx = cvs.getContext('2d');
+      const w = cvs.width;
+      const h = cvs.height;
+      const theme = getAppTheme();
+      ctx.clearRect(0, 0, w, h);
+      ctx.fillStyle = theme.bgPanel || '#101622';
+      ctx.fillRect(0, 0, w, h);
+
+      ctx.strokeStyle = theme.border || 'rgba(148,163,184,0.18)';
+      ctx.lineWidth = 1;
+      for (let i = 1; i <= 4; i++) {
+        const y = (h / 5) * i;
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+      }
+
+      const ptsA = (tripA.telemetry && tripA.telemetry.length > 1) ? tripA.telemetry : [{ spd: tripA.avg_speed_kmh }, { spd: tripA.max_speed_kmh }, { spd: tripA.avg_speed_kmh }];
+      const ptsB = (tripB.telemetry && tripB.telemetry.length > 1) ? tripB.telemetry : [{ spd: tripB.avg_speed_kmh }, { spd: tripB.max_speed_kmh }, { spd: tripB.avg_speed_kmh }];
+      const maxSpd = Math.max(60, ...ptsA.map(p => p.spd || 0), ...ptsB.map(p => p.spd || 0));
+
+      const drawCurve = (pts, color) => {
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        pts.forEach((p, idx) => {
+          const x = (idx / Math.max(1, pts.length - 1)) * (w - 24) + 12;
+          const y = h - 18 - ((p.spd || 0) / maxSpd) * (h - 42);
+          if (idx === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+      };
+      drawCurve(ptsA, '#00d7ff');
+      drawCurve(ptsB, '#f59e0b');
+
+      ctx.font = 'bold 11px sans-serif';
+      ctx.fillStyle = '#00d7ff';
+      ctx.fillText(`A: ${tripA.title}`, 14, 18);
+      ctx.fillStyle = '#f59e0b';
+      ctx.fillText(`B: ${tripB.title}`, 14, 34);
+    }
+
+    async function shareSelectedTripToCommunity() {
+      if (!selectedTrip) return;
+      try {
+        await apiCall('/api/community/create', 'POST', {
+          type: 'tour',
+          location: selectedTrip.route_name || 'Tour',
+          title: `Tour geteilt: ${selectedTrip.title}`,
+          body: `${selectedTrip.distance_km.toFixed(1)} km • Ø ${selectedTrip.avg_speed_kmh.toFixed(1)} km/h • Max ${selectedTrip.max_speed_kmh.toFixed(0)} km/h • Max Schräglage ${(selectedTrip.max_lean_deg || 0).toFixed(0)}°`,
+          tripSummary: {
+            distance_km: selectedTrip.distance_km,
+            avg_speed_kmh: selectedTrip.avg_speed_kmh,
+            max_speed_kmh: selectedTrip.max_speed_kmh
+          }
+        });
+        await loadBootstrap();
+        switchTab('Community');
+        switchCommunitySubView('feed');
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+
+    function switchCommunitySubView(sub) {
+      const isNew = sub === 'new';
+      document.getElementById('comViewFeed')?.classList.toggle('hide', isNew);
+      document.getElementById('comViewNew')?.classList.toggle('hide', !isNew);
+      document.getElementById('btnComSubFeed')?.classList.toggle('active', !isNew);
+      document.getElementById('btnComSubNew')?.classList.toggle('active', isNew);
+    }
+
+    function renderCommunityFeed() {
+      const container = document.getElementById('communityFeedContainer');
+      if (!container) return;
+      const posts = [...(appData.communityPosts || [])].sort((a, b) => b.id - a.id);
+      if (posts.length === 0) {
+        container.innerHTML = `<div class="card"><div class="muted">Noch keine Community-Beiträge vorhanden. Plane eine Ausfahrt oder teile eine aufgezeichnete Tour!</div></div>`;
+        return;
+      }
+      const me = appData.user || {};
+      const isStaff = me.role === 'admin' || me.role === 'support';
+      const typeLabel = { ride: 'AUSFAHRT', tour: 'TOUR-BERICHT', setup: 'SETUP' };
+
+      container.innerHTML = posts.map(p => {
+        const likes = Array.isArray(p.likes) ? p.likes : [];
+        const joins = Array.isArray(p.joins) ? p.joins : [];
+        const comments = Array.isArray(p.comments) ? p.comments : [];
+        const liked = likes.includes(me.id);
+        const joined = joins.includes(me.id);
+        const canDel = p.user_id === me.id || isStaff;
+        return `
+          <div class="card" style="margin-bottom: 14px;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; flex-wrap:wrap; margin-bottom:8px;">
+              <div>
+                <span class="tag ${p.type === 'ride' ? 'green' : 'accent'}">${typeLabel[p.type] || 'BEITRAG'}</span>
+                <span class="muted" style="font-size:12px; margin-left:8px;">${escHtml(p.location)} • ${escHtml(p.created_at)}</span>
+              </div>
+              <div style="display:flex; gap:6px; align-items:center;">
+                <span class="muted" style="font-size:12px;">von <b>${escHtml(p.author_name)}</b></span>
+                ${canDel ? `<button type="button" class="danger sm" onclick="deleteCommunityPost(${p.id})">Löschen</button>` : ''}
+              </div>
+            </div>
+            <div class="card-title" style="margin-bottom: 6px;">${escHtml(p.title)}</div>
+            <div style="font-size:13.5px; line-height:1.5; margin-bottom:12px;">${escHtml(p.body)}</div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; padding-top:10px; border-top:1px solid var(--border);">
+              <button type="button" class="${liked ? 'active' : 'sec'} sm" onclick="toggleCommunityLike(${p.id})">Gefällt mir (<span class="num">${likes.length}</span>)</button>
+              ${p.type === 'ride' ? `<button type="button" class="${joined ? 'active' : 'sec'} sm" onclick="toggleCommunityJoin(${p.id})">${joined ? 'Dabei' : 'Mitfahren'} (<span class="num">${joins.length}</span>)</button>` : ''}
+            </div>
+            <div style="margin-top:12px;">
+              ${comments.map(c => `<div style="font-size:12.5px; padding:6px 10px; background:var(--bg-subtle); border-radius:8px; margin-bottom:6px;"><b>${escHtml(c.author_name)}</b>: ${escHtml(c.text)} <span class="muted" style="font-size:11px; margin-left:6px;">${escHtml(c.created_at)}</span></div>`).join('')}
+              <form onsubmit="addCommunityComment(event, ${p.id})" style="display:flex; gap:8px; margin-top:8px;">
+                <input id="inpComComment_${p.id}" type="text" required placeholder="Kommentar schreiben..." style="flex:1;" />
+                <button type="submit" class="sec sm">Senden</button>
+              </form>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function handleCreateCommunityPost(e) {
+      e.preventDefault();
+      try {
+        await apiCall('/api/community/create', 'POST', {
+          type: document.getElementById('comPostType').value,
+          location: document.getElementById('comPostLocation').value.trim(),
+          title: document.getElementById('comPostTitle').value.trim(),
+          body: document.getElementById('comPostBody').value.trim()
+        });
+        e.target.reset();
+        await loadBootstrap();
+        switchCommunitySubView('feed');
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+
+    async function toggleCommunityLike(postId) {
+      await apiCall('/api/community/like', 'POST', { postId });
+      await loadBootstrap();
+    }
+
+    async function toggleCommunityJoin(postId) {
+      await apiCall('/api/community/join', 'POST', { postId });
+      await loadBootstrap();
+    }
+
+    async function addCommunityComment(e, postId) {
+      e.preventDefault();
+      const inp = document.getElementById(`inpComComment_${postId}`);
+      const text = inp ? inp.value.trim() : '';
+      if (!text) return;
+      await apiCall('/api/community/comment', 'POST', { postId, text });
+      await loadBootstrap();
+    }
+
+    async function deleteCommunityPost(postId) {
+      await apiCall('/api/community/delete', 'POST', { postId });
+      await loadBootstrap();
+    }
+
+    function switchGarageSubView(sub) {
+      const isCosts = sub === 'costs';
+      document.getElementById('garViewBikes')?.classList.toggle('hide', isCosts);
+      document.getElementById('garViewCosts')?.classList.toggle('hide', !isCosts);
+      document.getElementById('btnGarSubBikes')?.classList.toggle('active', !isCosts);
+      document.getElementById('btnGarSubCosts')?.classList.toggle('active', isCosts);
+      if (isCosts) renderExpensesAndSeason();
+    }
+
+    function renderExpensesAndSeason() {
+      const expenses = [...(appData.expenses || [])].sort((a, b) => b.id - a.id);
+      const tripsKm = (appData.trips || []).reduce((s, t) => s + (t.distance_km || 0), 0);
+      const expKm = expenses.reduce((s, e) => s + (e.dist_km || 0), 0);
+      const seasonKm = tripsKm > 0 ? tripsKm : expKm;
+      const totalCost = expenses.reduce((s, e) => s + (e.amount || 0), 0);
+
+      let fuelLiters = 0;
+      let fuelDist = 0;
+      expenses.forEach(e => {
+        if (e.category === 'Tanken' && e.liters > 0 && e.dist_km > 0) {
+          fuelLiters += e.liters;
+          fuelDist += e.dist_km;
+        }
+      });
+
+      const elKm = document.getElementById('statSeasonKm');
+      const elCost = document.getElementById('statSeasonCost');
+      const elFuel = document.getElementById('statSeasonFuel');
+      const elPerKm = document.getElementById('statSeasonPerKm');
+      if (elKm) elKm.textContent = `${seasonKm.toFixed(0)} km`;
+      if (elCost) elCost.textContent = `${totalCost.toFixed(2).replace('.', ',')} €`;
+      if (elFuel) elFuel.textContent = fuelDist > 0 ? `${((fuelLiters / fuelDist) * 100).toFixed(1)} l/100` : '-- l/100';
+      if (elPerKm) elPerKm.textContent = seasonKm > 0 && totalCost > 0 ? `${(totalCost / seasonKm).toFixed(2)} €/km` : '-- €/km';
+
+      const list = document.getElementById('expensesListContainer');
+      if (!list) return;
+      if (expenses.length === 0) {
+        list.innerHTML = '<div class="muted" style="font-size:13px;">Noch keine Ausgaben erfasst.</div>';
+        return;
+      }
+      list.innerHTML = expenses.map(ex => `
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid var(--border);">
+          <div>
+            <div style="font-weight:700; font-size:13.5px;">${escHtml(ex.category)} • <span class="num">${ex.amount.toFixed(2)} €</span></div>
+            <div class="muted" style="font-size:12px;">
+              ${ex.created_at}${ex.liters > 0 ? ` • ${ex.liters.toFixed(1)} L` : ''}${ex.dist_km > 0 ? ` • ${ex.dist_km} km` : ''}${ex.note ? ` • ${escHtml(ex.note)}` : ''}
+            </div>
+          </div>
+          <button type="button" class="danger sm" onclick="deleteExpense(${ex.id})">Löschen</button>
+        </div>
+      `).join('');
+    }
+
+    async function handleAddExpense(e) {
+      e.preventDefault();
+      try {
+        await apiCall('/api/expenses/add', 'POST', {
+          category: document.getElementById('expCategory').value,
+          amount: Number(document.getElementById('expAmount').value),
+          liters: Number(document.getElementById('expLiters').value || 0),
+          distKm: Number(document.getElementById('expDistKm').value || 0),
+          note: document.getElementById('expNote').value.trim()
+        });
+        e.target.reset();
+        await loadBootstrap();
+        renderExpensesAndSeason();
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+
+    async function deleteExpense(expenseId) {
+      await apiCall('/api/expenses/delete', 'POST', { expenseId });
+      await loadBootstrap();
+      renderExpensesAndSeason();
+    }
+
     async function openTripDetail(tripId) {
       try {
         const res = await apiCall(`/api/trip?id=${tripId}`);
         selectedTrip = res.trip;
+        document.getElementById('btnShareTripCommunity')?.classList.remove('hide');
         renderTripsList();
 
         document.getElementById('detTripTitle').textContent = selectedTrip.title;
@@ -4233,6 +4925,7 @@
           activeHiBg: '#dbeafe',
           activeLoBg: '#d1fae5'
         };
+        if (liveState.customAccent) pal.accentPrimary = liveState.customAccent;
 
         ctx.save();
         ctx.scale(2, 2);
@@ -4319,7 +5012,9 @@
 
         // Speed Box
         drawBox(ctx, 104, 84, 204, 98, 8, pal.bgPanel, pal.borderSubtle);
-        const spd = Math.max(0, Math.min(299, Math.round(liveState.displaySpeed)));
+        const isMph = liveState.customUnit === 'MPH';
+        const rawSpd = isMph ? liveState.displaySpeed * 0.621371 : liveState.displaySpeed;
+        const spd = Math.max(0, Math.min(299, Math.round(rawSpd)));
         const hDig = spd >= 100 ? Math.floor(spd / 100) : 10;
         const tDig = spd >= 10 ? Math.floor((spd / 10) % 10) : 10;
         const oDig = spd % 10;
@@ -4328,10 +5023,15 @@
         drawSevenSeg(ctx, 210, 100, 38, 66, 9, oDig, pal.textPrimary, pal.ghostSeg);
         ctx.fillStyle = pal.accentPrimary;
         ctx.font = 'bold 14px monospace';
-        ctx.fillText('KM/H', 256, 120);
+        ctx.fillText(isMph ? 'MPH' : 'KM/H', 256, 120);
         ctx.fillStyle = pal.greenNeutral;
         ctx.font = '9px monospace';
         ctx.fillText('GPS', 258, 136);
+        if (liveState.customTag) {
+          ctx.fillStyle = pal.textMuted;
+          ctx.font = 'bold 8px monospace';
+          ctx.fillText(liveState.customTag.toUpperCase(), 256, 152);
+        }
 
         // Bottom 3 Cards (TANK | BAT | TRP)
         drawBox(ctx, 12, 190, 94, 44, 6, pal.bgPanel, pal.borderSubtle);
