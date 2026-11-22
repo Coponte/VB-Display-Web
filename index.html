@@ -86,30 +86,85 @@
       filter: blur(50px);
     }
 
-    /* Floating Theme Switcher (No Navbar needed) */
-    .floating-theme-toggle {
+    /* Minimalist Top Corner Action + Separate Settings Popover */
+    .top-corner-bar {
       position: fixed;
-      top: 24px;
-      right: 28px;
+      top: 12px;
+      right: 14px;
       z-index: 100;
-      background: light-dark(rgba(255, 255, 255, 0.8), rgba(20, 21, 26, 0.8));
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .top-corner-link,
+    .top-corner-btn {
+      background: light-dark(rgba(255, 255, 255, 0.78), rgba(20, 21, 26, 0.78));
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
       border: 1px solid var(--border-strong);
       color: var(--text);
-      padding: 8px 16px;
-      border-radius: 999px;
-      font-size: 13px;
+      height: 32px;
+      padding: 0 11px;
+      border-radius: 8px;
+      font-size: 12px;
       font-weight: 500;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
-      gap: 8px;
-      box-shadow: 0 4px 18px rgba(0,0,0,0.1);
-      transition: all 0.2s ease;
+      justify-content: center;
+      gap: 6px;
+      text-decoration: none;
+      transition: background 0.15s ease, border-color 0.15s ease;
     }
-    .floating-theme-toggle:hover {
-      transform: scale(1.03);
+    .top-corner-btn {
+      width: 32px;
+      padding: 0;
+    }
+    .top-corner-link:hover,
+    .top-corner-btn:hover {
+      border-color: var(--text);
+    }
+    .settings-popover {
+      position: fixed;
+      top: 50px;
+      right: 14px;
+      z-index: 101;
+      width: 220px;
+      padding: 10px;
+      border-radius: 12px;
+      background: light-dark(rgba(255, 255, 255, 0.94), rgba(20, 21, 26, 0.94));
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--border-strong);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.22);
+      display: none;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .settings-popover.open {
+      display: flex;
+    }
+    .settings-popover-title {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      padding: 2px 4px 4px;
+    }
+    .settings-popover-btn {
+      width: 100%;
+      justify-content: space-between;
+      background: light-dark(rgba(0, 0, 0, 0.04), rgba(255, 255, 255, 0.06));
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px 10px;
+      border-radius: 8px;
+      font-size: 12.5px;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
     }
 
     /* 3D Centerpiece Viewport */
@@ -482,17 +537,30 @@
   <!-- Ambient Light Backdrop Behind Product -->
   <div class="ambient-glow" id="ambientGlow" aria-hidden="true"></div>
 
-  <!-- Minimalist Floating Top Controls (Website Theme + Display Theme + VB Connect App Link) -->
-  <div style="position: fixed; top: 24px; right: 28px; z-index: 100; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-    <button class="floating-theme-toggle" style="position: static;" id="themeToggleBtn" onclick="toggleTheme()" aria-label="Webseiten-Farbschema wechseln">
+  <!-- Minimalist Top Corner Action + Separate Settings Popover -->
+  <div class="top-corner-bar">
+    <a href="./app/" class="top-corner-link">
+      <span>VB Connect</span>
+      <span aria-hidden="true">→</span>
+    </a>
+    <button type="button" class="top-corner-btn" id="btnWebSettings" onclick="toggleWebSettingsPopover()" aria-label="Darstellung &amp; Einstellungen" title="Einstellungen">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"></circle>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.01a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.01a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.01a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+      </svg>
+    </button>
+  </div>
+
+  <div class="settings-popover" id="webSettingsPopover" role="dialog" aria-label="Darstellungs-Einstellungen">
+    <div class="settings-popover-title">Darstellung</div>
+    <button type="button" class="settings-popover-btn" id="themeToggleBtn" onclick="toggleTheme()" aria-label="Webseiten-Farbschema wechseln">
+      <span>Website</span>
       <span id="themeBtnText">Web: Light</span>
     </button>
-    <button class="floating-theme-toggle" style="position: static;" id="dispThemeToggleBtn" onclick="toggleDisplayMode()" aria-label="Display-Farbschema wechseln">
+    <button type="button" class="settings-popover-btn" id="dispThemeToggleBtn" onclick="toggleDisplayMode()" aria-label="Display-Farbschema wechseln">
+      <span>4.0" Display</span>
       <span id="dispThemeBtnText">Display: Dark</span>
     </button>
-    <a href="./app/" class="floating-theme-toggle" style="position: static; text-decoration: none; font-family: var(--font-mono); font-size: 12px;">
-      <span>VB Connect App →</span>
-    </a>
   </div>
 
   <!-- ========================================================================
@@ -684,6 +752,19 @@
       const isDark = getResolvedTheme() === 'dark';
       document.getElementById('themeBtnText').textContent = isDark ? 'Web: Dark' : 'Web: White';
     }
+
+    function toggleWebSettingsPopover() {
+      const pop = document.getElementById('webSettingsPopover');
+      if (pop) pop.classList.toggle('open');
+    }
+
+    document.addEventListener('click', (e) => {
+      const pop = document.getElementById('webSettingsPopover');
+      const btn = document.getElementById('btnWebSettings');
+      if (pop && pop.classList.contains('open') && !pop.contains(e.target) && (!btn || !btn.contains(e.target))) {
+        pop.classList.remove('open');
+      }
+    });
 
     function toggleTheme() {
       const isCurrentlyDark = getResolvedTheme() === 'dark';

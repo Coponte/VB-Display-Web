@@ -130,45 +130,49 @@
       position: sticky;
       top: 0;
       z-index: 90;
-      padding: calc(10px + var(--safe-top)) 18px 10px;
+      padding: calc(6px + var(--safe-top)) 14px 6px;
       background: var(--bg-glass);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
       border-bottom: 1px solid var(--border);
     }
 
     .topbar-inner {
       max-width: 1020px;
       margin: 0 auto;
+      min-height: 36px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 12px;
+      gap: 10px;
     }
 
     .brand {
       display: flex;
       align-items: center;
-      gap: 11px;
+      gap: 9px;
+      min-width: 0;
     }
 
     .brand-mark {
-      width: 32px;
-      height: 32px;
-      border-radius: 8px;
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
       background: var(--text);
       color: var(--bg);
       display: grid;
       place-items: center;
       font-family: var(--font-mono);
       font-weight: 700;
-      font-size: 12px;
+      font-size: 10px;
       letter-spacing: -0.03em;
+      flex-shrink: 0;
     }
 
     .brand-copy {
       display: flex;
       flex-direction: column;
+      min-width: 0;
     }
 
     .brand-name {
@@ -176,23 +180,51 @@
       font-weight: 600;
       letter-spacing: -0.02em;
       line-height: 1.1;
-    }
-
-    .brand-meta {
-      font-size: 10px;
-      font-family: var(--font-mono);
-      color: var(--text-secondary);
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      margin-top: 2px;
+      white-space: nowrap;
     }
 
     .topbar-controls {
       display: flex;
       align-items: center;
-      gap: 6px;
-      flex-wrap: wrap;
-      justify-content: flex-end;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .topbar-icon-btn {
+      width: 32px;
+      height: 32px;
+      padding: 0;
+      border-radius: 8px;
+      background: var(--bg-subtle);
+      color: var(--text);
+      border: 1px solid var(--border);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .settings-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .settings-row:last-of-type {
+      border-bottom: none;
+    }
+
+    .settings-row-title {
+      font-size: 13.5px;
+      font-weight: 600;
+    }
+
+    .settings-row-sub {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-top: 2px;
     }
 
     /* --- Hardware-Style Tactile Switches & Buttons --- */
@@ -640,7 +672,7 @@
       box-shadow: 0 1px 4px rgba(0,0,0,0.12);
     }
 
-    /* --- Bottom iOS Tab Bar --- */
+    /* --- Bottom Tab Bar --- */
     nav.tabbar {
       position: fixed;
       bottom: 0;
@@ -648,38 +680,48 @@
       right: 0;
       z-index: 95;
       background: var(--bg-glass);
-      backdrop-filter: blur(22px);
-      -webkit-backdrop-filter: blur(22px);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
       border-top: 1px solid var(--border);
-      padding: 6px 10px calc(6px + var(--safe-bottom));
+      padding: 4px 6px calc(4px + var(--safe-bottom));
     }
 
     .tabbar-inner {
-      max-width: 640px;
+      max-width: 680px;
       margin: 0 auto;
       display: flex;
       align-items: center;
       justify-content: space-around;
+      gap: 2px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .tabbar-inner::-webkit-scrollbar {
+      display: none;
     }
 
     .tab-btn {
       background: transparent;
       border: none;
       color: var(--text-secondary);
-      flex: 1;
+      flex: 1 0 auto;
+      min-width: 54px;
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 4px;
-      padding: 6px 4px;
-      font-size: 10.5px;
+      gap: 3px;
+      padding: 5px 6px;
+      border-radius: 8px;
+      font-size: 10px;
       font-weight: 500;
       letter-spacing: -0.01em;
+      white-space: nowrap;
     }
 
     .tab-btn svg.ico {
-      width: 19px;
-      height: 19px;
+      width: 17px;
+      height: 17px;
     }
 
     .tab-btn.active {
@@ -718,7 +760,7 @@
 <body>
 
   <!-- =====================================================================
-       TOP HEADER BAR (WITH APP WHITE/DARK & DISPLAY WHITE/DARK SWITCHERS)
+       CLEAN TOP HEADER BAR (MINIMAL, SETTINGS SEPARATE IN MODAL)
        ===================================================================== -->
   <header class="topbar">
     <div class="topbar-inner">
@@ -726,53 +768,76 @@
         <div class="brand-mark">VB</div>
         <div class="brand-copy">
           <div class="brand-name">VB Connect</div>
-          <div class="brand-meta">STM / ESP32 Telemetry System</div>
         </div>
       </div>
 
       <div class="topbar-controls">
-        <!-- App White Mode / Dark Mode Switch -->
-        <button type="button" class="theme-switch-pill" onclick="toggleAppTheme()" title="App-Erscheinungsbild umschalten (White Mode / Dark Mode)">
-          <svg class="ico" id="icoAppTheme" viewBox="0 0 24 24">
-            <circle cx="12" cy="12" r="4"></circle>
-            <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path>
-          </svg>
-          <span id="lblAppTheme">APP: DARK</span>
-        </button>
-
-        <!-- Display White Mode / Dark Mode Switch -->
-        <button type="button" class="theme-switch-pill" onclick="toggleDisplayTheme()" title="4.0 Zoll Display-Farbschema umschalten (Tag White Mode / Nacht Dark Mode)">
-          <svg class="ico" viewBox="0 0 24 24">
-            <rect x="2" y="4" width="20" height="14" rx="2"></rect>
-            <path d="M8 21h8M12 18v3"></path>
-          </svg>
-          <span id="lblDisplayTheme">DISPLAY: DARK</span>
-        </button>
-
-        <!-- iOS QR Installation Modal Trigger -->
-        <button type="button" class="theme-switch-pill" onclick="openInstallModal()" title="Auf iPhone als App installieren">
-          <svg class="ico" viewBox="0 0 24 24">
-            <rect x="6" y="2" width="12" height="20" rx="2"></rect>
-            <path d="M12 18h.01"></path>
-          </svg>
-          <span>iOS APP</span>
-        </button>
-
-        <span id="hdrEspBadge" class="tag">
+        <span id="hdrEspBadge" class="tag" style="padding: 3px 8px; font-size: 10px;">
           <span class="tag-dot"></span>
-          <span id="hdrEspText">SIMULATION</span>
+          <span id="hdrEspText">SIM</span>
         </span>
 
-        <button id="btnLogout" type="button" class="ghost sm hide" onclick="logoutUser()" title="Abmelden">
+        <button type="button" class="topbar-icon-btn" onclick="openSettingsModal()" title="Einstellungen" aria-label="Einstellungen öffnen">
           <svg class="ico" viewBox="0 0 24 24">
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-            <polyline points="16 17 21 12 16 7"></polyline>
-            <line x1="21" y1="12" x2="9" y2="12"></line>
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.01a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.01a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.01a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
           </svg>
         </button>
       </div>
     </div>
   </header>
+
+  <!-- Separate Settings Dialog -->
+  <dialog id="dlgSettings">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+      <div style="font-size: 16px; font-weight: 700;">Einstellungen</div>
+      <button type="button" class="ghost sm" onclick="document.getElementById('dlgSettings').close()">Schließen</button>
+    </div>
+
+    <div class="settings-row">
+      <div>
+        <div class="settings-row-title">App-Erscheinungsbild</div>
+        <div class="settings-row-sub">Zwischen Dark Mode und White Mode wechseln</div>
+      </div>
+      <button type="button" class="theme-switch-pill" onclick="toggleAppTheme()">
+        <svg class="ico" id="icoAppTheme" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="4"></circle>
+          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path>
+        </svg>
+        <span id="lblAppTheme">APP: DARK</span>
+      </button>
+    </div>
+
+    <div class="settings-row">
+      <div>
+        <div class="settings-row-title">4.0 Zoll Display-Schema</div>
+        <div class="settings-row-sub">Tag- (White) oder Nacht-Cluster (Dark)</div>
+      </div>
+      <button type="button" class="theme-switch-pill" onclick="toggleDisplayTheme()">
+        <svg class="ico" viewBox="0 0 24 24">
+          <rect x="2" y="4" width="20" height="14" rx="2"></rect>
+          <path d="M8 21h8M12 18v3"></path>
+        </svg>
+        <span id="lblDisplayTheme">DISPLAY: DARK</span>
+      </button>
+    </div>
+
+    <div class="settings-row">
+      <div>
+        <div class="settings-row-title">iOS Web-App</div>
+        <div class="settings-row-sub">Zum Home-Bildschirm hinzufügen</div>
+      </div>
+      <button type="button" class="sec sm" onclick="document.getElementById('dlgSettings').close(); openInstallModal();">Installieren</button>
+    </div>
+
+    <div class="settings-row">
+      <div>
+        <div class="settings-row-title">Sitzung</div>
+        <div class="settings-row-sub">Aus deinem Konto abmelden</div>
+      </div>
+      <button id="btnLogout" type="button" class="danger sm hide" onclick="document.getElementById('dlgSettings').close(); logoutUser();">Abmelden</button>
+    </div>
+  </dialog>
 
   <main class="container">
 
@@ -1980,7 +2045,7 @@
           <line x1="3" y1="10" x2="21" y2="10"></line>
           <line x1="7" y1="15" x2="11" y2="15"></line>
         </svg>
-        <span>Lizenz &amp; Hilfe</span>
+        <span>Hilfe</span>
       </button>
 
       <!-- Dedicated Support Desk Tab (Visible for role === 'support' AND role === 'admin') -->
@@ -2092,6 +2157,18 @@
           : '<circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path>';
       }
       drawTripAnalytics();
+    }
+
+    function openSettingsModal() {
+      const dlg = document.getElementById('dlgSettings');
+      if (!dlg) return;
+      if (!dlg.dataset.bound) {
+        dlg.dataset.bound = '1';
+        dlg.addEventListener('click', (e) => {
+          if (e.target === dlg) dlg.close();
+        });
+      }
+      dlg.showModal();
     }
 
     function toggleAppTheme() {
