@@ -202,6 +202,76 @@
       justify-content: center;
     }
 
+    /* --- Motorcycle Login Button Animation --- */
+    .btn-login-moto {
+      position: relative;
+      overflow: hidden;
+      width: 100%;
+      margin-top: 6px;
+      height: 44px;
+      gap: 10px;
+    }
+
+    .moto-svg {
+      width: 34px;
+      height: 20px;
+      flex-shrink: 0;
+      overflow: visible;
+      transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .moto-trail {
+      position: absolute;
+      left: 0;
+      bottom: 6px;
+      height: 2px;
+      width: 0;
+      background: var(--accent);
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .btn-login-moto:hover .moto-svg {
+      transform: translateX(4px) rotate(-4deg);
+    }
+
+    .btn-login-moto:hover .moto-wheel {
+      transform-box: fill-box;
+      transform-origin: center;
+      animation: motoSpin 0.45s linear infinite;
+    }
+
+    .btn-login-moto.is-riding .moto-svg {
+      animation: motoLaunch 0.55s cubic-bezier(0.32, 0, 0.2, 1) forwards;
+    }
+
+    .btn-login-moto.is-riding .moto-wheel {
+      transform-box: fill-box;
+      transform-origin: center;
+      animation: motoSpin 0.16s linear infinite;
+    }
+
+    .btn-login-moto.is-riding .moto-trail {
+      animation: motoTrailSweep 0.55s ease-out forwards;
+    }
+
+    @keyframes motoSpin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes motoLaunch {
+      0% { transform: translateX(0) rotate(0deg); }
+      25% { transform: translateX(12px) rotate(-9deg); }
+      100% { transform: translateX(260px) rotate(-5deg); opacity: 0; }
+    }
+
+    @keyframes motoTrailSweep {
+      0% { width: 0; opacity: 0.95; left: 16%; }
+      55% { width: 65%; opacity: 0.9; left: 22%; }
+      100% { width: 0; opacity: 0; left: 95%; }
+    }
+
     .settings-row {
       display: flex;
       align-items: center;
@@ -772,11 +842,6 @@
       </div>
 
       <div class="topbar-controls">
-        <span id="hdrEspBadge" class="tag" style="padding: 3px 8px; font-size: 10px;">
-          <span class="tag-dot"></span>
-          <span id="hdrEspText">SIM</span>
-        </span>
-
         <button type="button" class="topbar-icon-btn" onclick="openSettingsModal()" title="Einstellungen" aria-label="Einstellungen öffnen">
           <svg class="ico" viewBox="0 0 24 24">
             <circle cx="12" cy="12" r="3"></circle>
@@ -875,7 +940,18 @@
             </div>
             <input id="loginPw" type="password" required autocomplete="current-password" placeholder="••••••••" />
           </div>
-          <button type="submit" id="btnLoginSubmit" style="width: 100%; margin-top: 6px;">Anmelden</button>
+          <button type="submit" id="btnLoginSubmit" class="btn-login-moto">
+            <span class="moto-trail" aria-hidden="true"></span>
+            <svg class="moto-svg" viewBox="0 0 46 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle class="moto-wheel" cx="10" cy="18" r="4.5"></circle>
+              <circle class="moto-wheel" cx="36" cy="18" r="4.5"></circle>
+              <path d="M10 18 L18 11 L27 11 L32 7 L36 18"></path>
+              <path d="M14 11 L20 16 L28 16 L32 10"></path>
+              <path d="M29 6 L34 6"></path>
+              <path d="M5 13 L13 13" stroke="var(--accent)" stroke-width="2"></path>
+            </svg>
+            <span>Anmelden</span>
+          </button>
         </form>
 
         <!-- Password Reset Step 1 -->
@@ -3162,12 +3238,21 @@
 
         const identifier = document.getElementById('loginIdent').value.trim();
         const password = document.getElementById('loginPw').value;
+        const btn = document.getElementById('btnLoginSubmit');
+        if (btn) {
+          btn.classList.remove('is-riding');
+          void btn.offsetWidth;
+          btn.classList.add('is-riding');
+        }
         const res = await apiCall('/api/auth/login', 'POST', { identifier, password });
         rateLimiter.failedAttempts = 0;
         authToken = res.token;
         localStorage.setItem('vb_connect_token', authToken);
+        await new Promise(r => setTimeout(r, 420));
+        if (btn) btn.classList.remove('is-riding');
         await loadBootstrap();
       } catch (err) {
+        document.getElementById('btnLoginSubmit')?.classList.remove('is-riding');
         recordFailedAuthAttempt('LOGIN_FAIL', document.getElementById('loginIdent').value);
         showAuthError(err.message);
       }
@@ -3492,8 +3577,10 @@
 
       if (d && d.telemetry) {
         espConnected = true;
-        badge.className = 'tag green';
-        badgeTxt.textContent = `ESP32 LIVE (${ip})`;
+        if (badge && badgeTxt) {
+          badge.className = 'tag green';
+          badgeTxt.textContent = `ESP32 LIVE (${ip})`;
+        }
         if (statusTxt) statusTxt.innerHTML = `Verbunden mit <b>${d.device || 'VB-Display-ESP32'}</b> • Status: <b>${d.status}</b>`;
 
         liveState.speedKmh = d.telemetry.speedKmh;
@@ -3515,8 +3602,10 @@
         liveState.gpsSatellites = d.gps.satellites;
       } else {
         espConnected = false;
-        badge.className = 'tag accent';
-        badgeTxt.textContent = liveState.simMode === 2 ? 'AUTOPILOT' : 'SIMULATION';
+        if (badge && badgeTxt) {
+          badge.className = 'tag accent';
+          badgeTxt.textContent = liveState.simMode === 2 ? 'AUTOPILOT' : 'SIMULATION';
+        }
         if (statusTxt) statusTxt.innerHTML = `Kein direktes ESP32-WLAN erkannt — integrierter Telemetrie-Simulator aktiv.`;
       }
       updateLiveTelemetryCards();
