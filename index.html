@@ -21,21 +21,21 @@
     :root {
       color-scheme: light dark;
 
-      /* Dynamic Semantic Color Tokens via light-dark() */
-      --bg: light-dark(#fbfbfd, #09090b);
-      --text: light-dark(#1d1d1f, #f5f5f7);
-      --text-muted: light-dark(#6e6e73, #86868b);
-      --border: light-dark(rgba(0, 0, 0, 0.08), rgba(255, 255, 255, 0.08));
-      --border-strong: light-dark(rgba(0, 0, 0, 0.16), rgba(255, 255, 255, 0.18));
+      /* Dynamic Semantic Color Tokens via light-dark() — CNC Anodized Look */
+      --bg: light-dark(#f2f2ef, #0c0c0d);
+      --text: light-dark(#111113, #f3f3f1);
+      --text-muted: light-dark(#58585f, #8e8e94);
+      --border: light-dark(rgba(12, 12, 13, 0.12), rgba(255, 255, 255, 0.10));
+      --border-strong: light-dark(rgba(12, 12, 13, 0.24), rgba(255, 255, 255, 0.22));
 
-      --card-bg: light-dark(#ffffff, #131418);
-      --card-border: light-dark(rgba(0, 0, 0, 0.06), rgba(255, 255, 255, 0.08));
-      --card-shadow: light-dark(0 14px 40px rgba(0,0,0,0.06), 0 14px 40px rgba(0,0,0,0.45));
+      --card-bg: light-dark(#ffffff, #141416);
+      --card-border: light-dark(rgba(12, 12, 13, 0.12), rgba(255, 255, 255, 0.12));
+      --card-shadow: none;
 
       /* Hardware Accent Colors */
-      --cyan: #00bcd4;
-      --green: #2e7d32;
-      --red: #d32f2f;
+      --cyan: #e5391a;
+      --green: #16a34a;
+      --red: #dc2626;
 
       --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", sans-serif;
       --font-serif: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", sans-serif;
@@ -71,19 +71,9 @@
       overflow-x: hidden;
     }
 
-    /* Ambient Glow Behind Centerpiece */
+    /* Subtle Vignette (no artificial neon fog) */
     .ambient-glow {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: min(75vw, 750px);
-      height: min(75vw, 750px);
-      background: radial-gradient(circle, var(--glow-color, rgba(0, 188, 212, 0.12)) 0%, transparent 65%);
-      pointer-events: none;
-      z-index: 1;
-      transition: background 0.4s ease;
-      filter: blur(50px);
+      display: none;
     }
 
     /* Minimalist Top Corner Action + Separate Settings Popover */
@@ -98,16 +88,15 @@
     }
     .top-corner-link,
     .top-corner-btn {
-      background: light-dark(rgba(255, 255, 255, 0.78), rgba(20, 21, 26, 0.78));
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
+      background: var(--card-bg);
       border: 1px solid var(--border-strong);
       color: var(--text);
       height: 32px;
-      padding: 0 11px;
-      border-radius: 8px;
+      padding: 0 12px;
+      border-radius: 4px;
       font-size: 12px;
-      font-weight: 500;
+      font-weight: 600;
+      letter-spacing: 0.02em;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
@@ -122,7 +111,7 @@
     }
     .top-corner-link:hover,
     .top-corner-btn:hover {
-      border-color: var(--text);
+      border-color: var(--cyan);
     }
     .settings-popover {
       position: fixed;
@@ -131,12 +120,10 @@
       z-index: 101;
       width: 220px;
       padding: 10px;
-      border-radius: 12px;
-      background: light-dark(rgba(255, 255, 255, 0.94), rgba(20, 21, 26, 0.94));
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
+      border-radius: 6px;
+      background: var(--card-bg);
       border: 1px solid var(--border-strong);
-      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.22);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
       display: none;
       flex-direction: column;
       gap: 6px;
