@@ -1101,6 +1101,34 @@
             <div class="card-label" style="margin-bottom: 10px;">DISPLAY-CUSTOMIZING (LIVE &amp; ESP32 SYNC)</div>
             <div class="grid-2">
               <div class="field">
+                <label for="selDispHud">HUD-Aufbau (Ansicht)</label>
+                <select id="selDispHud" onchange="applyDisplayCustomizing()">
+                  <option value="0">Classic Cluster</option>
+                  <option value="1">Sport Performance</option>
+                  <option value="2">Touring Minimal</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="selDispBottomMetric">Untere Datenleiste</label>
+                <select id="selDispBottomMetric" onchange="applyDisplayCustomizing()">
+                  <option value="0">Standard (TANK / BAT / TRP)</option>
+                  <option value="1">Motor (TANK / TEMP / ODO)</option>
+                </select>
+              </div>
+            </div>
+            <div style="display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 10px; font-size: 12.5px;">
+              <label style="display: inline-flex; align-items: center; gap: 6px; margin: 0; cursor: pointer;">
+                <input id="chkDispRpm" type="checkbox" checked onchange="applyDisplayCustomizing()" style="width: auto;" /> Drehzahlband
+              </label>
+              <label style="display: inline-flex; align-items: center; gap: 6px; margin: 0; cursor: pointer;">
+                <input id="chkDispGear" type="checkbox" checked onchange="applyDisplayCustomizing()" style="width: auto;" /> Ganganzeige
+              </label>
+              <label style="display: inline-flex; align-items: center; gap: 6px; margin: 0; cursor: pointer;">
+                <input id="chkDispBottom" type="checkbox" checked onchange="applyDisplayCustomizing()" style="width: auto;" /> Untere Leiste
+              </label>
+            </div>
+            <div class="grid-2">
+              <div class="field">
                 <label for="inpDispTag">Display-Kürzel / Fahrer-Tag</label>
                 <input id="inpDispTag" type="text" maxlength="10" placeholder="z. B. VB-PRO" oninput="applyDisplayCustomizing()" />
               </div>
@@ -2192,7 +2220,12 @@
       autoTime: 0,
       customTag: localStorage.getItem('vb_disp_tag') || '',
       customUnit: localStorage.getItem('vb_disp_unit') || 'KM/H',
-      customAccent: localStorage.getItem('vb_disp_accent') || ''
+      customAccent: localStorage.getItem('vb_disp_accent') || '',
+      hudLayout: Number(localStorage.getItem('vb_disp_hud') || 0),
+      showRpmBar: localStorage.getItem('vb_disp_rpm') !== 'false',
+      showGearBox: localStorage.getItem('vb_disp_gear') !== 'false',
+      showBottomCards: localStorage.getItem('vb_disp_bottom') !== 'false',
+      bottomMetric: Number(localStorage.getItem('vb_disp_metric') || 0)
     };
     const savedRedline = Number(localStorage.getItem('vb_disp_redline'));
     if (savedRedline >= 6000 && savedRedline <= 12000) liveState.redlineRpm = savedRedline;
@@ -3780,11 +3813,21 @@
       const redline = document.getElementById('rngDispRedline');
       const lblRed = document.getElementById('lblDispRedline');
       const accent = document.getElementById('selDispAccent');
+      const hud = document.getElementById('selDispHud');
+      const metric = document.getElementById('selDispBottomMetric');
+      const chkRpm = document.getElementById('chkDispRpm');
+      const chkGear = document.getElementById('chkDispGear');
+      const chkBot = document.getElementById('chkDispBottom');
       if (tag) tag.value = liveState.customTag || '';
       if (unit) unit.value = liveState.customUnit || 'KM/H';
       if (redline) redline.value = String(liveState.redlineRpm || 9500);
       if (lblRed) lblRed.textContent = String(liveState.redlineRpm || 9500);
       if (accent) accent.value = liveState.customAccent || '#00d7ff';
+      if (hud) hud.value = String(liveState.hudLayout || 0);
+      if (metric) metric.value = String(liveState.bottomMetric || 0);
+      if (chkRpm) chkRpm.checked = liveState.showRpmBar !== false;
+      if (chkGear) chkGear.checked = liveState.showGearBox !== false;
+      if (chkBot) chkBot.checked = liveState.showBottomCards !== false;
     }
 
     function toggleDisplayCustomizing() {
@@ -3799,6 +3842,11 @@
       const unit = document.getElementById('selDispUnit')?.value || 'KM/H';
       const redline = Number(document.getElementById('rngDispRedline')?.value || 9500);
       const accent = document.getElementById('selDispAccent')?.value || '';
+      const hud = Number(document.getElementById('selDispHud')?.value || 0);
+      const bottomMetric = Number(document.getElementById('selDispBottomMetric')?.value || 0);
+      const showRpm = document.getElementById('chkDispRpm') ? document.getElementById('chkDispRpm').checked : true;
+      const showGear = document.getElementById('chkDispGear') ? document.getElementById('chkDispGear').checked : true;
+      const showBottom = document.getElementById('chkDispBottom') ? document.getElementById('chkDispBottom').checked : true;
       const lblRed = document.getElementById('lblDispRedline');
       if (lblRed) lblRed.textContent = String(redline);
 
@@ -3806,13 +3854,30 @@
       liveState.customUnit = unit;
       liveState.redlineRpm = redline;
       liveState.customAccent = accent;
+      liveState.hudLayout = hud;
+      liveState.bottomMetric = bottomMetric;
+      liveState.showRpmBar = showRpm;
+      liveState.showGearBox = showGear;
+      liveState.showBottomCards = showBottom;
 
       localStorage.setItem('vb_disp_tag', tag);
       localStorage.setItem('vb_disp_unit', unit);
       localStorage.setItem('vb_disp_redline', String(redline));
       localStorage.setItem('vb_disp_accent', accent);
+      localStorage.setItem('vb_disp_hud', String(hud));
+      localStorage.setItem('vb_disp_metric', String(bottomMetric));
+      localStorage.setItem('vb_disp_rpm', showRpm ? 'true' : 'false');
+      localStorage.setItem('vb_disp_gear', showGear ? 'true' : 'false');
+      localStorage.setItem('vb_disp_bottom', showBottom ? 'true' : 'false');
 
-      sendEspControl({ tag, unit, redline, accent });
+      sendEspControl({
+        tag, unit, redline, accent,
+        hud,
+        showRpm: showRpm ? 1 : 0,
+        showGear: showGear ? 1 : 0,
+        showBottom: showBottom ? 1 : 0,
+        bottomMetric
+      });
       updateLiveTelemetryCards();
     }
 
@@ -5147,76 +5212,149 @@
         ctx.fillRect(281, 17, 12, 8);
         ctx.beginPath(); ctx.moveTo(305, 21); ctx.lineTo(293, 13); ctx.lineTo(293, 29); ctx.fill();
 
-        // 36-Segment RPM Bar
-        const segments = 36;
-        const activeSegs = Math.round((liveState.displayRpm / 12000) * segments);
-        const redlineSeg = Math.round((liveState.redlineRpm / 12000) * segments);
-        for (let i = 0; i < segments; i++) {
-          const sx = 12 + i * 8;
-          const dh = 12 + Math.floor((i * 10) / segments);
-          const sy = 46 + (22 - dh);
-          let col = pal.bgTrack;
-          if (i < activeSegs) {
-            col = i >= redlineSeg ? pal.redDanger : (i >= redlineSeg - 5 ? pal.amberWarn : pal.accentPrimary);
+        // 36-Segment RPM Bar (HUD 0 & HUD 1)
+        if (liveState.hudLayout !== 2 && liveState.showRpmBar) {
+          const segments = 36;
+          const activeSegs = Math.round((liveState.displayRpm / 12000) * segments);
+          const redlineSeg = Math.round((liveState.redlineRpm / 12000) * segments);
+          for (let i = 0; i < segments; i++) {
+            const sx = 12 + i * 8;
+            const dh = 12 + Math.floor((i * 10) / segments);
+            const sy = 46 + (22 - dh);
+            let col = pal.bgTrack;
+            if (i < activeSegs) {
+              col = i >= redlineSeg ? pal.redDanger : (i >= redlineSeg - 5 ? pal.amberWarn : pal.accentPrimary);
+            }
+            drawBox(ctx, sx, sy, 6, dh, 2, col, null);
           }
-          drawBox(ctx, sx, sy, 6, dh, 2, col, null);
         }
 
-        // Gear Box
-        const isN = liveState.gear === 0;
-        drawBox(ctx, 12, 84, 84, 98, 8, pal.bgPanel, isN ? pal.greenNeutral : (shiftOn ? pal.redDanger : pal.borderSubtle));
-        ctx.fillStyle = pal.textMuted;
-        ctx.font = '9px monospace';
-        ctx.fillText('GANG', 38, 96);
-        if (isN) {
-          ctx.fillStyle = pal.greenNeutral;
-          ctx.font = 'bold 52px sans-serif';
-          ctx.fillText('N', 35, 156);
-        } else {
-          drawSevenSeg(ctx, 34, 106, 40, 56, 8, liveState.gear, shiftOn ? pal.redDanger : pal.textPrimary, pal.ghostSeg);
-        }
-
-        // Speed Box
-        drawBox(ctx, 104, 84, 204, 98, 8, pal.bgPanel, pal.borderSubtle);
         const isMph = liveState.customUnit === 'MPH';
         const rawSpd = isMph ? liveState.displaySpeed * 0.621371 : liveState.displaySpeed;
         const spd = Math.max(0, Math.min(299, Math.round(rawSpd)));
         const hDig = spd >= 100 ? Math.floor(spd / 100) : 10;
         const tDig = spd >= 10 ? Math.floor((spd / 10) % 10) : 10;
         const oDig = spd % 10;
-        drawSevenSeg(ctx, 118, 100, 38, 66, 9, hDig, pal.textPrimary, pal.ghostSeg);
-        drawSevenSeg(ctx, 164, 100, 38, 66, 9, tDig, pal.textPrimary, pal.ghostSeg);
-        drawSevenSeg(ctx, 210, 100, 38, 66, 9, oDig, pal.textPrimary, pal.ghostSeg);
-        ctx.fillStyle = pal.accentPrimary;
-        ctx.font = 'bold 14px monospace';
-        ctx.fillText(isMph ? 'MPH' : 'KM/H', 256, 120);
-        ctx.fillStyle = pal.greenNeutral;
-        ctx.font = '9px monospace';
-        ctx.fillText('GPS', 258, 136);
-        if (liveState.customTag) {
+        const isN = liveState.gear === 0;
+
+        if (liveState.hudLayout === 1) {
+          // HUD 1: SPORT / PERFORMANCE (Audi S/RS Style)
+          drawBox(ctx, 12, 84, 214, 98, 8, pal.bgPanel, shiftOn ? pal.redDanger : pal.accentPrimary);
+          drawSevenSeg(ctx, 24, 100, 38, 66, 9, hDig, pal.textPrimary, pal.ghostSeg);
+          drawSevenSeg(ctx, 70, 100, 38, 66, 9, tDig, pal.textPrimary, pal.ghostSeg);
+          drawSevenSeg(ctx, 116, 100, 38, 66, 9, oDig, pal.textPrimary, pal.ghostSeg);
+          ctx.fillStyle = pal.accentPrimary;
+          ctx.font = 'bold 14px monospace';
+          ctx.fillText(isMph ? 'MPH' : 'KM/H', 164, 120);
+          ctx.fillStyle = shiftOn ? pal.redDanger : pal.textMuted;
+          ctx.font = '9px monospace';
+          ctx.fillText(`${Math.round(liveState.displayRpm)} RPM`, 164, 138);
           ctx.fillStyle = pal.textMuted;
-          ctx.font = 'bold 8px monospace';
-          ctx.fillText(liveState.customTag.toUpperCase(), 256, 152);
+          ctx.fillText(liveState.customTag ? liveState.customTag.toUpperCase() : 'SPORT HUD', 164, 154);
+
+          drawBox(ctx, 234, 84, 74, 98, 8, pal.bgPanel, isN ? pal.greenNeutral : pal.borderSubtle);
+          if (liveState.showGearBox) {
+            ctx.fillStyle = pal.textMuted;
+            ctx.font = '9px monospace';
+            ctx.fillText('GANG', 256, 96);
+            if (isN) {
+              ctx.fillStyle = pal.greenNeutral;
+              ctx.font = 'bold 48px sans-serif';
+              ctx.fillText('N', 255, 154);
+            } else {
+              drawSevenSeg(ctx, 251, 108, 36, 54, 7, liveState.gear, shiftOn ? pal.redDanger : pal.textPrimary, pal.ghostSeg);
+            }
+          } else {
+            ctx.fillStyle = pal.textMuted;
+            ctx.font = '9px monospace';
+            ctx.fillText('TEMP', 254, 116);
+            ctx.fillStyle = liveState.coolantTempC >= 105 ? pal.redDanger : pal.textPrimary;
+            ctx.font = 'bold 16px monospace';
+            ctx.fillText(`${liveState.coolantTempC}C`, 250, 140);
+          }
+        } else if (liveState.hudLayout === 2) {
+          // HUD 2: TOURING / MINIMAL (Audi Reduced Style)
+          drawBox(ctx, 12, 52, 296, 130, 8, pal.bgPanel, pal.borderSubtle);
+          drawSevenSeg(ctx, 62, 74, 42, 74, 10, hDig, pal.textPrimary, pal.ghostSeg);
+          drawSevenSeg(ctx, 114, 74, 42, 74, 10, tDig, pal.textPrimary, pal.ghostSeg);
+          drawSevenSeg(ctx, 166, 74, 42, 74, 10, oDig, pal.textPrimary, pal.ghostSeg);
+          ctx.fillStyle = pal.accentPrimary;
+          ctx.font = 'bold 14px monospace';
+          ctx.fillText(isMph ? 'MPH' : 'KM/H', 220, 96);
+          ctx.fillStyle = pal.textMuted;
+          ctx.font = '9px monospace';
+          ctx.fillText(liveState.customTag ? liveState.customTag.toUpperCase() : 'TOURING', 220, 114);
+          if (liveState.showGearBox) {
+            ctx.fillStyle = isN ? pal.greenNeutral : pal.textPrimary;
+            ctx.font = 'bold 11px monospace';
+            ctx.fillText(isN ? 'GANG N' : `GANG ${liveState.gear}`, 220, 134);
+          }
+        } else {
+          // HUD 0: CLASSIC CLUSTER
+          if (liveState.showGearBox) {
+            drawBox(ctx, 12, 84, 84, 98, 8, pal.bgPanel, isN ? pal.greenNeutral : (shiftOn ? pal.redDanger : pal.borderSubtle));
+            ctx.fillStyle = pal.textMuted;
+            ctx.font = '9px monospace';
+            ctx.fillText('GANG', 38, 96);
+            if (isN) {
+              ctx.fillStyle = pal.greenNeutral;
+              ctx.font = 'bold 52px sans-serif';
+              ctx.fillText('N', 35, 156);
+            } else {
+              drawSevenSeg(ctx, 34, 106, 40, 56, 8, liveState.gear, shiftOn ? pal.redDanger : pal.textPrimary, pal.ghostSeg);
+            }
+          }
+
+          const spdBoxX = liveState.showGearBox ? 104 : 12;
+          const spdBoxW = liveState.showGearBox ? 204 : 296;
+          const digShift = liveState.showGearBox ? 0 : 46;
+          drawBox(ctx, spdBoxX, 84, spdBoxW, 98, 8, pal.bgPanel, pal.borderSubtle);
+          drawSevenSeg(ctx, 118 + digShift - (liveState.showGearBox ? 0 : 14), 100, 38, 66, 9, hDig, pal.textPrimary, pal.ghostSeg);
+          drawSevenSeg(ctx, 164 + digShift - (liveState.showGearBox ? 0 : 14), 100, 38, 66, 9, tDig, pal.textPrimary, pal.ghostSeg);
+          drawSevenSeg(ctx, 210 + digShift - (liveState.showGearBox ? 0 : 14), 100, 38, 66, 9, oDig, pal.textPrimary, pal.ghostSeg);
+          ctx.fillStyle = pal.accentPrimary;
+          ctx.font = 'bold 14px monospace';
+          ctx.fillText(isMph ? 'MPH' : 'KM/H', 256, 120);
+          ctx.fillStyle = pal.greenNeutral;
+          ctx.font = '9px monospace';
+          ctx.fillText('GPS', 258, 136);
+          if (liveState.customTag) {
+            ctx.fillStyle = pal.textMuted;
+            ctx.font = 'bold 8px monospace';
+            ctx.fillText(liveState.customTag.toUpperCase(), 256, 152);
+          }
         }
 
-        // Bottom 3 Cards (TANK | BAT | TRP)
-        drawBox(ctx, 12, 190, 94, 44, 6, pal.bgPanel, pal.borderSubtle);
-        ctx.fillStyle = pal.textPrimary;
-        ctx.font = '10px monospace';
-        ctx.fillText(`TANK ${liveState.fuelPercent}%`, 20, 204);
-        for (let i = 0; i < 8; i++) {
-          const lit = liveState.fuelPercent >= (i + 1) * 12;
-          ctx.fillStyle = lit ? pal.accentPrimary : pal.bgTrack;
-          ctx.fillRect(20 + i * 10, 214, 8, 12);
+        // Bottom 3 Cards (TANK | BAT | TRP or TANK | TEMP | ODO)
+        if (liveState.showBottomCards) {
+          drawBox(ctx, 12, 190, 94, 44, 6, pal.bgPanel, pal.borderSubtle);
+          ctx.fillStyle = pal.textPrimary;
+          ctx.font = '10px monospace';
+          ctx.fillText(`TANK ${liveState.fuelPercent}%`, 20, 204);
+          for (let i = 0; i < 8; i++) {
+            const lit = liveState.fuelPercent >= (i + 1) * 12;
+            ctx.fillStyle = lit ? pal.accentPrimary : pal.bgTrack;
+            ctx.fillRect(20 + i * 10, 214, 8, 12);
+          }
+
+          if (liveState.bottomMetric === 1) {
+            drawBox(ctx, 112, 190, 100, 44, 6, pal.bgPanel, pal.borderSubtle);
+            ctx.fillStyle = liveState.coolantTempC >= 105 ? pal.redDanger : pal.textPrimary;
+            ctx.fillText(`TEMP ${liveState.coolantTempC}C`, 124, 215);
+
+            drawBox(ctx, 218, 190, 90, 44, 6, pal.bgPanel, pal.borderSubtle);
+            ctx.fillStyle = pal.accentPrimary;
+            ctx.fillText(`ODO ${Math.round(liveState.odoKm)}`, 226, 215);
+          } else {
+            drawBox(ctx, 112, 190, 100, 44, 6, pal.bgPanel, pal.borderSubtle);
+            ctx.fillStyle = liveState.batteryVolts < 11.8 ? pal.redDanger : pal.textPrimary;
+            ctx.fillText(`BAT ${liveState.batteryVolts.toFixed(1)}V`, 124, 215);
+
+            drawBox(ctx, 218, 190, 90, 44, 6, pal.bgPanel, pal.borderSubtle);
+            ctx.fillStyle = pal.accentPrimary;
+            ctx.fillText(`TRP ${liveState.tripKm.toFixed(1)}`, 226, 215);
+          }
         }
-
-        drawBox(ctx, 112, 190, 100, 44, 6, pal.bgPanel, pal.borderSubtle);
-        ctx.fillStyle = liveState.batteryVolts < 11.8 ? pal.redDanger : pal.textPrimary;
-        ctx.fillText(`BAT ${liveState.batteryVolts.toFixed(1)}V`, 124, 215);
-
-        drawBox(ctx, 218, 190, 90, 44, 6, pal.bgPanel, pal.borderSubtle);
-        ctx.fillStyle = pal.accentPrimary;
-        ctx.fillText(`TRP ${liveState.tripKm.toFixed(1)}`, 226, 215);
 
         ctx.restore();
       }
