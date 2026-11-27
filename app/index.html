@@ -1107,6 +1107,7 @@
                   <option value="0">Classic Cluster</option>
                   <option value="1">Sport Performance</option>
                   <option value="2">Touring Minimal</option>
+                  <option value="3">Audi RS Digital Cockpit</option>
                 </select>
               </div>
               <div class="field">
@@ -5330,7 +5331,7 @@
         ctx.beginPath(); ctx.moveTo(305, 21); ctx.lineTo(293, 13); ctx.lineTo(293, 29); ctx.fill();
 
         // 36-Segment RPM Bar (HUD 0 & HUD 1)
-        if (liveState.hudLayout !== 2 && liveState.showRpmBar) {
+        if (liveState.hudLayout !== 2 && liveState.hudLayout !== 3 && liveState.showRpmBar) {
           const segments = 36;
           const activeSegs = Math.round((liveState.displayRpm / 12000) * segments);
           const redlineSeg = Math.round((liveState.redlineRpm / 12000) * segments);
@@ -5406,6 +5407,76 @@
             ctx.font = 'bold 11px monospace';
             ctx.fillText(isN ? 'GANG N' : `GANG ${liveState.gear}`, 220, 134);
           }
+        } else if (liveState.hudLayout === 3) {
+          // HUD 3: AUDI RS DIGITAL COCKPIT (RS Boomerang / Runway)
+          const rsRed = '#e5391a';
+          if (liveState.showRpmBar) {
+            const totalSegs = 28;
+            const activeSegs = Math.round((liveState.displayRpm / 12000) * totalSegs);
+            const redSeg = Math.round((liveState.redlineRpm / 12000) * totalSegs);
+            for (let i = 0; i < totalSegs; i++) {
+              let sx, sy, sw, sh;
+              if (i < 9) {
+                sx = 14 + i * 7;
+                sy = 148 - i * 11;
+                sw = 6;
+                sh = 16;
+              } else {
+                const j = i - 9;
+                sx = 77 + j * 12;
+                sy = 48;
+                sw = 9;
+                sh = 16 + (j > 12 ? 4 : 0);
+              }
+              let col = pal.bgTrack;
+              if (i < activeSegs) {
+                if (i >= redSeg) col = rsRed;
+                else if (i >= redSeg - 4) col = pal.amberWarn;
+                else col = (i < 9) ? pal.greenNeutral : pal.textPrimary;
+              }
+              drawBox(ctx, sx, sy, sw, sh, 2, col, null);
+            }
+          }
+
+          // RS Badge
+          ctx.fillStyle = rsRed;
+          ctx.fillRect(14, 48, 28, 16);
+          ctx.fillStyle = '#ffffff';
+          ctx.font = 'bold 10px sans-serif';
+          ctx.fillText('RS', 19, 60);
+
+          // Zentraler RS Performance-Kern
+          drawBox(ctx, 82, 74, 224, 108, 6, pal.bgPanel, shiftOn ? rsRed : pal.borderSubtle);
+          if (liveState.showGearBox) {
+            drawBox(ctx, 90, 84, 52, 88, 4, pal.bgTrack, null);
+            ctx.fillStyle = pal.textMuted;
+            ctx.font = '8px monospace';
+            ctx.fillText('GEAR', 105, 95);
+            if (isN) {
+              ctx.fillStyle = pal.greenNeutral;
+              ctx.font = 'bold 44px sans-serif';
+              ctx.fillText('N', 102, 152);
+            } else {
+              drawSevenSeg(ctx, 98, 108, 34, 54, 7, liveState.gear, shiftOn ? rsRed : pal.textPrimary, pal.ghostSeg);
+            }
+          }
+
+          const spX = liveState.showGearBox ? 150 : 112;
+          drawSevenSeg(ctx, spX,      90, 32, 58, 7, hDig, pal.textPrimary, pal.ghostSeg);
+          drawSevenSeg(ctx, spX + 38, 90, 32, 58, 7, tDig, pal.textPrimary, pal.ghostSeg);
+          drawSevenSeg(ctx, spX + 76, 90, 32, 58, 7, oDig, pal.textPrimary, pal.ghostSeg);
+          ctx.fillStyle = rsRed;
+          ctx.font = 'bold 10px monospace';
+          ctx.fillText(isMph ? 'MPH' : 'KM/H', spX + 114, 146);
+
+          ctx.fillStyle = pal.textMuted;
+          ctx.font = '9px monospace';
+          ctx.fillText(`${Math.round(liveState.displayRpm)} RPM`, spX + 4, 170);
+
+          drawBox(ctx, 14, 160, 60, 22, 3, pal.bgPanel, null);
+          ctx.fillStyle = liveState.coolantTempC >= 105 ? rsRed : pal.textPrimary;
+          ctx.font = 'bold 10px monospace';
+          ctx.fillText(`${liveState.coolantTempC}C`, 26, 174);
         } else {
           // HUD 0: CLASSIC CLUSTER
           if (liveState.showGearBox) {
