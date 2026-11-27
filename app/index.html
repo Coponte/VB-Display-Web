@@ -2227,7 +2227,8 @@
       showGearBox: localStorage.getItem('vb_disp_gear') !== 'false',
       showBottomCards: localStorage.getItem('vb_disp_bottom') !== 'false',
       bottomMetric: Number(localStorage.getItem('vb_disp_metric') || 0),
-      bootStartMs: performance.now()
+      bootStartMs: performance.now(),
+      sensorsDetected: false
     };
     const savedRedline = Number(localStorage.getItem('vb_disp_redline'));
     if (savedRedline >= 6000 && savedRedline <= 12000) liveState.redlineRpm = savedRedline;
@@ -3635,8 +3636,10 @@
         liveState.oilPressureWarn = d.indicators.oilPressureWarn;
         liveState.gpsFix = d.gps.fix;
         liveState.gpsSatellites = d.gps.satellites;
+        liveState.sensorsDetected = Boolean(d.sensorsDetected);
       } else {
         espConnected = false;
+        liveState.sensorsDetected = false;
         if (badge && badgeTxt) {
           badge.className = 'tag accent';
           badgeTxt.textContent = liveState.simMode === 2 ? 'AUTOPILOT' : 'SIMULATION';
@@ -5172,7 +5175,8 @@
         ctx.fillRect(0, 0, 320, 240);
 
         const bootElapsed = nowMs - (liveState.bootStartMs || 0);
-        if (bootElapsed >= 0 && bootElapsed < 2400) {
+        const bootTotalMs = liveState.sensorsDetected ? 2400 : 6800;
+        if (bootElapsed >= 0 && bootElapsed < bootTotalMs) {
           const redAccent = '#e5391a';
           const p = Math.max(0, Math.min(1, bootElapsed / 2400));
           drawBox(ctx, 8, 8, 304, 224, 6, pal.bgScreen, pal.borderSubtle);
@@ -5223,17 +5227,19 @@
             ctx.fillStyle = pal.textMuted;
             ctx.font = '9px monospace';
             ctx.fillText('ECU / CAN', 34, 174);
-            ctx.fillStyle = pal.greenNeutral;
+            const ecuCol = liveState.sensorsDetected ? pal.greenNeutral : pal.redDanger;
+            ctx.fillStyle = ecuCol;
             ctx.beginPath(); ctx.arc(98, 171, 3, 0, Math.PI * 2); ctx.fill();
-            ctx.fillText('OK', 106, 174);
+            ctx.fillText(liveState.sensorsDetected ? 'OK' : 'OFF', 106, 174);
           }
 
           if (bootElapsed >= 1100) {
             ctx.fillStyle = pal.textMuted;
             ctx.fillText('GPS / IMU', 142, 174);
-            ctx.fillStyle = liveState.gpsFix ? pal.greenNeutral : pal.amberWarn;
+            const gpsCol = liveState.sensorsDetected ? (liveState.gpsFix ? pal.greenNeutral : pal.amberWarn) : pal.redDanger;
+            ctx.fillStyle = gpsCol;
             ctx.beginPath(); ctx.arc(206, 171, 3, 0, Math.PI * 2); ctx.fill();
-            ctx.fillText(liveState.gpsFix ? 'OK' : 'SYNC', 214, 174);
+            ctx.fillText(liveState.sensorsDetected ? (liveState.gpsFix ? 'OK' : 'SYNC') : 'OFF', 214, 174);
           }
 
           if (bootElapsed >= 1450) {
@@ -5247,6 +5253,28 @@
           drawBox(ctx, 34, 210, 252, 6, 2, pal.bgTrack, null);
           const fillW = Math.round(252 * p);
           if (fillW > 0) drawBox(ctx, 34, 210, fillW, 6, 2, redAccent, null);
+
+          // 5-Sekunden Sensor-Fehlermeldung (nur wenn keine Sensoren erkannt wurden)
+          if (!liveState.sensorsDetected && bootElapsed >= 1800 && bootElapsed < 6800) {
+            const secLeft = Math.max(1, 5 - Math.floor((bootElapsed - 1800) / 1000));
+            drawBox(ctx, 26, 62, 268, 116, 6, pal.bgPanel, redAccent);
+            ctx.fillStyle = redAccent;
+            ctx.fillRect(26, 62, 268, 24);
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 10px monospace';
+            ctx.fillText('SENSOR-WARNUNG', 40, 77);
+
+            ctx.fillStyle = pal.textPrimary;
+            ctx.font = 'bold 12px sans-serif';
+            ctx.fillText('KEINE SENSOREN ERKANNT', 40, 108);
+            ctx.fillStyle = pal.textMuted;
+            ctx.font = '10px sans-serif';
+            ctx.fillText('Display startet im Demo-/Testmodus.', 40, 126);
+
+            ctx.fillStyle = pal.amberWarn;
+            ctx.font = 'bold 10px monospace';
+            ctx.fillText(`Autom. weiter in ${secLeft}s ...`, 40, 154);
+          }
 
           ctx.restore();
           requestAnimationFrame(renderCockpitLoop);
