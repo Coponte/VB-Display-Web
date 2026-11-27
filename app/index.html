@@ -3509,8 +3509,12 @@
         const isSupport = currentUser.role === 'support';
         const isStaff = isAdmin || isSupport;
 
+        const wasAuthHidden = !document.getElementById('viewApp').classList.contains('hide');
         document.getElementById('viewAuth').classList.add('hide');
         document.getElementById('viewApp').classList.remove('hide');
+        if (!wasAuthHidden) {
+          liveState.bootStartMs = performance.now();
+        }
         document.getElementById('bottomNav').classList.remove('hide');
         document.getElementById('btnLogout').classList.remove('hide');
 
