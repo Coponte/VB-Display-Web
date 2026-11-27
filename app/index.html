@@ -1089,6 +1089,7 @@
 
             <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
               <button type="button" class="sec sm" onclick="toggleDisplayCustomizing()">Display-Customizing</button>
+              <button type="button" class="sec sm" onclick="triggerStartupScreen()">Startup-Screen</button>
               <button type="button" class="sec sm" onclick="sendEspControl({ tripReset: 1 })">Trip 0.0</button>
               <button type="button" class="sec sm" onclick="setAdminSimMode(liveState.simMode === 2 ? 0 : 2)">
                 <span id="btnQuickAutopilot">Autopilot Testfahrt</span>
@@ -2225,7 +2226,8 @@
       showRpmBar: localStorage.getItem('vb_disp_rpm') !== 'false',
       showGearBox: localStorage.getItem('vb_disp_gear') !== 'false',
       showBottomCards: localStorage.getItem('vb_disp_bottom') !== 'false',
-      bottomMetric: Number(localStorage.getItem('vb_disp_metric') || 0)
+      bottomMetric: Number(localStorage.getItem('vb_disp_metric') || 0),
+      bootStartMs: performance.now()
     };
     const savedRedline = Number(localStorage.getItem('vb_disp_redline'));
     if (savedRedline >= 6000 && savedRedline <= 12000) liveState.redlineRpm = savedRedline;
@@ -3837,6 +3839,11 @@
       if (!panel.classList.contains('hide')) initDisplayCustomizingInputs();
     }
 
+    function triggerStartupScreen() {
+      liveState.bootStartMs = performance.now();
+      sendEspControl({ bootTest: 1 });
+    }
+
     function applyDisplayCustomizing() {
       const tag = (document.getElementById('inpDispTag')?.value || '').trim().slice(0, 10);
       const unit = document.getElementById('selDispUnit')?.value || 'KM/H';
@@ -5163,6 +5170,88 @@
 
         ctx.fillStyle = pal.bgScreen;
         ctx.fillRect(0, 0, 320, 240);
+
+        const bootElapsed = nowMs - (liveState.bootStartMs || 0);
+        if (bootElapsed >= 0 && bootElapsed < 2400) {
+          const redAccent = '#e5391a';
+          const p = Math.max(0, Math.min(1, bootElapsed / 2400));
+          drawBox(ctx, 8, 8, 304, 224, 6, pal.bgScreen, pal.borderSubtle);
+
+          // Phase 1: Horizontale Shutter-Linie
+          const lineP = Math.min(1, bootElapsed / 450);
+          const lineW = Math.round(256 * lineP);
+          ctx.fillStyle = redAccent;
+          ctx.fillRect(160 - lineW / 2, 136, lineW, 2);
+
+          // Zentrales VB-Emblem
+          if (bootElapsed >= 160) {
+            drawBox(ctx, 92, 42, 136, 62, 5, pal.bgPanel, pal.borderSubtle);
+            ctx.fillStyle = redAccent;
+            ctx.fillRect(92, 42, 6, 62);
+
+            ctx.strokeStyle = pal.textPrimary;
+            ctx.lineWidth = 4.5;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.beginPath();
+            ctx.moveTo(114, 56); ctx.lineTo(127, 90); ctx.lineTo(140, 56);
+            ctx.stroke();
+
+            ctx.font = '800 34px sans-serif';
+            ctx.fillStyle = pal.textPrimary;
+            ctx.fillText('B', 154, 88);
+
+            ctx.fillStyle = redAccent;
+            ctx.beginPath();
+            ctx.moveTo(196, 90); ctx.lineTo(208, 56); ctx.lineTo(215, 56); ctx.lineTo(203, 90);
+            ctx.closePath();
+            ctx.fill();
+          }
+
+          if (bootElapsed >= 380) {
+            ctx.fillStyle = pal.textPrimary;
+            ctx.font = 'bold 16px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(liveState.customTag ? `VB DISPLAY // ${liveState.customTag.toUpperCase()}` : 'VB DISPLAY', 160, 128);
+            ctx.fillStyle = pal.textMuted;
+            ctx.font = '9px monospace';
+            ctx.fillText('DIGITAL COCKPIT // TELEMETRY', 160, 152);
+            ctx.textAlign = 'left';
+          }
+
+          if (bootElapsed >= 750) {
+            ctx.fillStyle = pal.textMuted;
+            ctx.font = '9px monospace';
+            ctx.fillText('ECU / CAN', 34, 174);
+            ctx.fillStyle = pal.greenNeutral;
+            ctx.beginPath(); ctx.arc(98, 171, 3, 0, Math.PI * 2); ctx.fill();
+            ctx.fillText('OK', 106, 174);
+          }
+
+          if (bootElapsed >= 1100) {
+            ctx.fillStyle = pal.textMuted;
+            ctx.fillText('GPS / IMU', 142, 174);
+            ctx.fillStyle = liveState.gpsFix ? pal.greenNeutral : pal.amberWarn;
+            ctx.beginPath(); ctx.arc(206, 171, 3, 0, Math.PI * 2); ctx.fill();
+            ctx.fillText(liveState.gpsFix ? 'OK' : 'SYNC', 214, 174);
+          }
+
+          if (bootElapsed >= 1450) {
+            ctx.fillStyle = pal.textPrimary;
+            ctx.font = '9px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText(`BAT ${liveState.batteryVolts.toFixed(1)}V   FUEL ${liveState.fuelPercent}%   ODO ${Math.round(liveState.odoKm)}km`, 160, 194);
+            ctx.textAlign = 'left';
+          }
+
+          drawBox(ctx, 34, 210, 252, 6, 2, pal.bgTrack, null);
+          const fillW = Math.round(252 * p);
+          if (fillW > 0) drawBox(ctx, 34, 210, fillW, 6, 2, redAccent, null);
+
+          ctx.restore();
+          requestAnimationFrame(renderCockpitLoop);
+          return;
+        }
 
         if (shiftOn) {
           ctx.fillStyle = pal.redDanger;
